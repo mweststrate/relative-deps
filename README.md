@@ -1,5 +1,7 @@
 # relative-deps
 
+**WORK IN PROGRESS!**
+
 Installs local dependencies for optimal developer experience
 
 ---
@@ -33,7 +35,7 @@ Install `relative-deps` as developer dependency. Either in the hosting project, 
 
 In the hosting project, add the following `package.json` script:
 
-`"postinstall": "relative-deps"`
+`"postinstall": "yarn relative-deps"`
 
 This will re-install any relative dependency if needed when running `yarn install`.
 
@@ -43,10 +45,10 @@ Optionally, you can add this step also for more scripts, for example:
 {
   "name": "mobx-react-demo",
   "scripts": {
-    "postinstall": "relative-deps",
-    "prestart": "relative-deps",
-    "prebuild": "relative-deps",
-    "pretest": "relative-deps"
+    "postinstall": "yarn relative-deps",
+    "prestart": "yarn relative-deps",
+    "prebuild": "yarn relative-deps",
+    "pretest": "yarn relative-deps"
   }
 }
 ```
