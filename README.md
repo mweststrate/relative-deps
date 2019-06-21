@@ -45,10 +45,10 @@ Optionally, you can add this step also for more scripts, for example:
 {
   "name": "mobx-react-demo",
   "scripts": {
-    "postinstall": "yarn relative-deps",
-    "prestart": "yarn relative-deps",
-    "prebuild": "yarn relative-deps",
-    "pretest": "yarn relative-deps"
+    "postinstall": "relative-deps",
+    "prestart": "relative-deps",
+    "prebuild": "relative-deps",
+    "pretest": "relative-deps"
   }
 }
 ```
@@ -109,10 +109,10 @@ Roughly, it works like this:
 
 PRs are welcome!
 
-- [ ] support `relativedeps add <path>`
+- [ ] support `relative-deps add <path>`
 - [ ] support `npm` as well
 - [ ] support scoped package names
-- [ ] support `relativedeps --init` to setup postinstall / build hooks
-- [ ] support `relativedeps --watch` to watch project and automatically install!
+- [ ] support `relative-deps --init` to setup postinstall / build hooks
+- [ ] support `relative-deps --watch` to watch project and automatically install!
 - [ ] support more types of relative paths, such as git urls
 - [ ] factor out script to unpack an arbirtrary package.tgz

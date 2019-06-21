@@ -25,5 +25,9 @@
   "bugs": {
     "url": "https://github.com/mweststrate/relative-deps/issues"
   },
-  "homepage": "https://github.com/mweststrate/relative-deps#readme"
+  "homepage": "https://github.com/mweststrate/relative-deps#readme",
+  "dependencies": {
+    "read-pkg-up": "^6.0.0",
+    "rimraf": "^2.6.3"
+  }
 }
