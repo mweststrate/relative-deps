@@ -1,0 +1,26 @@
+{
+  "name": "relative-deps",
+  "version": "0.0.1",
+  "description": "Installs local dependencies for optimal developer experience",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mweststrate/relative-deps.git"
+  },
+  "keywords": [
+    "yarn",
+    "npm",
+    "link",
+    "relative",
+    "dependencies"
+  ],
+  "author": "Michel Weststrate",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mweststrate/relative-deps/issues"
+  },
+  "homepage": "https://github.com/mweststrate/relative-deps#readme"
+}
