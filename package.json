@@ -27,6 +27,8 @@
   },
   "homepage": "https://github.com/mweststrate/relative-deps#readme",
   "dependencies": {
+    "checksum": "^0.1.1",
+    "globby": "^9.2.0",
     "read-pkg-up": "^6.0.0",
     "rimraf": "^2.6.3"
   }

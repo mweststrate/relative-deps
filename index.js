@@ -4,47 +4,97 @@ const child_process = require("child_process")
 const fs = require("fs")
 const readPkgUp = require("read-pkg-up")
 const rimraf = require("rimraf")
+const globby = require("globby")
+const checksum = require("checksum")
 
-const projectPkgJson = readPkgUp.sync()
+async function main() {
+  const projectPkgJson = readPkgUp.sync()
 
-const relativeDependencies = projectPkgJson.package.relativeDependencies
+  const relativeDependencies = projectPkgJson.package.relativeDependencies
 
-if (!relativeDependencies) {
-  console.warn("[relative-deps] No 'relativeDependencies' specified in package.json")
-  process.exit(0)
-}
+  if (!relativeDependencies) {
+    console.warn("[relative-deps] No 'relativeDependencies' specified in package.json")
+    process.exit(0)
+  }
 
-const targetDir = path.dirname(projectPkgJson.path)
+  const targetDir = path.dirname(projectPkgJson.path)
 
-Object.keys(relativeDependencies).forEach(name => {
-  const dir = path.resolve(targetDir, relativeDependencies[name])
-  console.log(`[relative-deps] checking '${name}' in '${dir}'`)
+  const depNames = Object.keys(relativeDependencies)
+  for (const name of depNames) {
+    const libDir = path.resolve(targetDir, relativeDependencies[name])
+    console.log(`[relative-deps] checking '${name}' in '${libDir}'`)
 
-  // Check if target dir exists
-  if (!fs.existsSync(dir)) {
-    // Nope, but is the dependency mentioned as normal dependency in the package.json? Use that one
-    if (
-      (projectPkgJson.package.dependencies && projectPkgJson.package.dependencies[name]) ||
-      (projectPkgJson.package.devDependencies && projectPkgJson.package.devDependencies[name])
-    ) {
-      console.warn(`[relative-deps] Could not find target director '${dir}', using already installed version instead`)
-      return
-    } else {
-      console.error(`[relative-deps] Failed to find target directory '${dir}'`)
-      process.exit(1)
+    // Check if target dir exists
+    if (!fs.existsSync(libDir)) {
+      // Nope, but is the dependency mentioned as normal dependency in the package.json? Use that one
+      if (
+        (projectPkgJson.package.dependencies && projectPkgJson.package.dependencies[name]) ||
+        (projectPkgJson.package.devDependencies && projectPkgJson.package.devDependencies[name])
+      ) {
+        console.warn(
+          `[relative-deps] Could not find target director '${libDir}', using already installed version instead`
+        )
+        return
+      } else {
+        console.error(`[relative-deps] Failed to find target directory '${libDir}'`)
+        process.exit(1)
+      }
+    }
+
+    const hashStore = {
+      hash: "",
+      file: ""
+    }
+    const hasChanges = await libraryHasChanged(name, libDir, targetDir, hashStore)
+    if (hasChanges) {
+      buildLibrary(name, libDir)
+      packAndInstallLibrary(name, libDir, targetDir)
+      fs.writeFileSync(hashStore.file, hashStore.hash)
+      console.log(`[relative-deps] re-installing ${name}... DONE`)
     }
   }
+}
 
-  if (libraryHasChanged(name, dir)) {
-    // TODO: buildLibrary(name, dir)
-    packAndInstallLibrary(name, dir, targetDir)
-    console.log(`[relative-deps] ${name}... DONE`)
+async function libraryHasChanged(name, libDir, targetDir, hashStore) {
+  const hashFile = targetDir + "/node_modules/" + name + "/.relative-deps-hash"
+  const referenceContents = fs.existsSync(hashFile) ? fs.readFileSync(hashFile, "utf8") : ""
+  // compute the hahses
+  const libFiles = await findFiles(libDir, targetDir)
+  const hashes = []
+  for (file of libFiles) hashes.push(await getFileHash(libDir + "/" + file))
+  const contents = libFiles.map((file, index) => hashes[index] + " " + file).join("\n")
+  hashStore.file = hashFile
+  hashStore.hash = contents
+  if (contents === referenceContents) {
+    // computed hashes still the same?
+    console.log("[relative-deps] no changes")
+    return false
   }
-})
-
-function libraryHasChanged(name, dir) {
-  // TODO:
+  // Print which files did change
+  if (referenceContents) {
+    const contentsLines = contents.split("\n")
+    const refLines = referenceContents.split("\n")
+    for (let i = 0; i < contentsLines.length; i++)
+      if (contentsLines[i] !== refLines[i]) {
+        console.log("[relative-deps] changed file: " + libFiles[i]) //, contentsLines[i], refLines[i])
+        break
+      }
+  }
   return true
+}
+
+async function findFiles(libDir, targetDir) {
+  const ignore = ["**/*", "!node_modules", "!.git"]
+  if (targetDir.indexOf(libDir) === 0) {
+    // The target dir is in the lib directory, make sure that path is excluded
+    ignore.push("!" + targetDir.substr(libDir.length + 1).split(path.sep)[0])
+  }
+  const files = await globby(ignore, {
+    gitignore: true,
+    cwd: libDir,
+    nodir: true
+  })
+  return files.sort()
 }
 
 function buildLibrary(name, dir) {
@@ -85,14 +135,18 @@ function packAndInstallLibrary(name, dir, targetDir) {
     child_process.execSync(`tar zxf ${dir}/${tmpName} --strip-components=1 -C ${libDestDir} package`, {
       stdio: [0, 1, 2]
     })
-
-    // TODO: should this be done?
-    // console.log("[relative-deps] Installing")
-    // child_process.execSync(`yarn install --production`, {
-    //   cwd: libDestDir,
-    //   stdio: [0, 1, 2]
-    // })
   } finally {
     fs.unlinkSync(dir + "/" + tmpName)
   }
 }
+
+async function getFileHash(file) {
+  return await new Promise((resolve, reject) => {
+    checksum.file(file, (error, hash) => {
+      if (error) reject(error)
+      else resolve(hash)
+    })
+  })
+}
+
+main()

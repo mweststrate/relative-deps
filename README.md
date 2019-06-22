@@ -55,17 +55,10 @@ Optionally, you can add this step also for more scripts, for example:
 
 # Adding a relative dependency
 
-To use a relative dependency, add it's name and relative path under the `relativeDependencies` top-level section in the `package.json` of the hosting package. For example:
+### Step 1: Install the dependency as normal dependency
 
-````json
-{
-  "name": "mobx-react-demo",
-  "relativeDependencies": {
-    "mobx-react": "../../"
-  }
-}
-
-Optionally, you can install a relative dependency as normal dependency as well. The benefit of this is that anybody that checks out the project, but doesn't have a checkout of the targeted library, gets the normally published version. For example:
+First, can install a relative dependency as normal dependency. The benefit of this is that anybody that checks out the project, but doesn't have a checkout of the targeted library, gets the normally published version. (It also ensures that transitive dependencies are resolved, if the package to be installed has no relative dependencies, this step is optional. ).
+For example:
 
 ```json
 {
@@ -77,7 +70,22 @@ Optionally, you can install a relative dependency as normal dependency as well. 
     "mobx-react": "^4.0.0"
   }
 }
-````
+```
+
+### Step 2: Link to the relative dependency
+
+To add the same package as a relative dependency, add its name and relative path under the `relativeDependencies` top-level section in the `package.json` of the hosting package. If a dependency is available at it's relative location, this take precedence over the normal dependency, thanks to the post install script. For example:
+
+```json
+{
+  "name": "mobx-react-demo",
+  "relativeDependencies": {
+    "mobx-react": "../../"
+  }
+}
+```
+
+After that, run `yarn` to complete the proces and install the relative dependency for the first time
 
 # How
 
@@ -105,10 +113,11 @@ Roughly, it works like this:
 - done
 ```
 
-# Future features
+# Future features / TODOS
 
 PRs are welcome!
 
+- [ ] find a way to automatically install / update transitive dependencies
 - [ ] support `relative-deps add <path>`
 - [ ] support `npm` as well
 - [ ] support scoped package names
@@ -116,3 +125,7 @@ PRs are welcome!
 - [ ] support `relative-deps --watch` to watch project and automatically install!
 - [ ] support more types of relative paths, such as git urls
 - [ ] factor out script to unpack an arbirtrary package.tgz
+
+```
+
+```
