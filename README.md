@@ -1,10 +1,16 @@
 # relative-deps
 
-**WORK IN PROGRESS!**
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/michelweststrate)
+<a href="https://www.buymeacoffee.com/mweststrate" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 22px !important;width: auto !important;" ></a>
 
-Installs local dependencies for optimal developer experience
+_Installs dependencies from a local checkout, and keeps them in sync, without the limitations of `link`_
 
 ---
+
+Relative deps introduces an additional dependency section in `package.json`, called `relativeDependencies`.
+This section contains paths to the local sources of any dependency, building, syncing and installing those over the public versions, where needed.
+
+An example setup can be found [here](https://github.com/mobxjs/mst-gql/pull/40/commits/4d2c0858f8c44a562c0244466b56f79b0ed7591b).
 
 # Why
 
@@ -87,9 +93,18 @@ To add the same package as a relative dependency, add its name and relative path
 
 After that, run `yarn` to complete the proces and install the relative dependency for the first time
 
+Example of a [repository migration to relative-deps](https://github.com/mobxjs/mst-gql/pull/40/commits/4d2c0858f8c44a562c0244466b56f79b0ed7591b)
+
+### Step 3: Run `yarn relative-deps` when devving!
+
+The relative deps will automatically be checked for changes, based on the hooks you've set up during [installation](#installation).
+
+However, you can always trigger a manual check-and-build-if-needed by running `yarn relative-deps` (or just `yarn`). If you are working on a project that supports
+hot reloading, this will makes sure the changes in the relative dependency will automatically show up in your project! (A watch mode, to even automate this, might be introduced in the future).
+
 # How
 
-Roughly, it works like this:
+Roughly, it works like this (obviously this can get out of date quickly):
 
 ```
 - pre: yarn.lock exists or die
@@ -111,21 +126,4 @@ Roughly, it works like this:
   - extract package (mind scoped package names!)
   - run yarn install --no-dev-deps in target dir
 - done
-```
-
-# Future features / TODOS
-
-PRs are welcome!
-
-- [ ] find a way to automatically install / update transitive dependencies
-- [ ] support `relative-deps add <path>`
-- [ ] support `npm` as well
-- [ ] support scoped package names
-- [ ] support `relative-deps --init` to setup postinstall / build hooks
-- [ ] support `relative-deps --watch` to watch project and automatically install!
-- [ ] support more types of relative paths, such as git urls
-- [ ] factor out script to unpack an arbirtrary package.tgz
-
-```
-
 ```

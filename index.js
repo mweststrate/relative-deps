@@ -24,19 +24,28 @@ async function main() {
     const libDir = path.resolve(targetDir, relativeDependencies[name])
     console.log(`[relative-deps] checking '${name}' in '${libDir}'`)
 
+    const regularDep =
+      (projectPkgJson.package.dependencies && projectPkgJson.package.dependencies[name]) ||
+      (projectPkgJson.package.devDependencies && projectPkgJson.package.devDependencies[name])
+
+    if (!regularDep) {
+      console.warn(
+        `[relative-deps] The relative dependency '${name}' should also be added as normal- or dev-dependency`
+      )
+    }
+
     // Check if target dir exists
     if (!fs.existsSync(libDir)) {
       // Nope, but is the dependency mentioned as normal dependency in the package.json? Use that one
-      if (
-        (projectPkgJson.package.dependencies && projectPkgJson.package.dependencies[name]) ||
-        (projectPkgJson.package.devDependencies && projectPkgJson.package.devDependencies[name])
-      ) {
+      if (regularDep) {
         console.warn(
-          `[relative-deps] Could not find target director '${libDir}', using already installed version instead`
+          `[relative-deps] Could not find target directory '${libDir}', using normally installed version ('${regularDep}') instead`
         )
         return
       } else {
-        console.error(`[relative-deps] Failed to find target directory '${libDir}'`)
+        console.error(
+          `[relative-deps] Failed to resolve dependency ${name}: failed to find target directory '${libDir}', and the library is not present as normal depenency either`
+        )
         process.exit(1)
       }
     }
