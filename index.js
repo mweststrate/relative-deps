@@ -13,7 +13,7 @@ async function main() {
   const relativeDependencies = projectPkgJson.package.relativeDependencies
 
   if (!relativeDependencies) {
-    console.warn("[relative-deps] No 'relativeDependencies' specified in package.json")
+    console.warn("[relative-deps][WARN] No 'relativeDependencies' specified in package.json")
     process.exit(0)
   }
 
@@ -22,7 +22,7 @@ async function main() {
   const depNames = Object.keys(relativeDependencies)
   for (const name of depNames) {
     const libDir = path.resolve(targetDir, relativeDependencies[name])
-    console.log(`[relative-deps] checking '${name}' in '${libDir}'`)
+    console.log(`[relative-deps] Checking '${name}' in '${libDir}'`)
 
     const regularDep =
       (projectPkgJson.package.dependencies && projectPkgJson.package.dependencies[name]) ||
@@ -30,7 +30,7 @@ async function main() {
 
     if (!regularDep) {
       console.warn(
-        `[relative-deps] The relative dependency '${name}' should also be added as normal- or dev-dependency`
+        `[relative-deps][WARN] The relative dependency '${name}' should also be added as normal- or dev-dependency`
       )
     }
 
@@ -39,12 +39,12 @@ async function main() {
       // Nope, but is the dependency mentioned as normal dependency in the package.json? Use that one
       if (regularDep) {
         console.warn(
-          `[relative-deps] Could not find target directory '${libDir}', using normally installed version ('${regularDep}') instead`
+          `[relative-deps][WARN] Could not find target directory '${libDir}', using normally installed version ('${regularDep}') instead`
         )
         return
       } else {
         console.error(
-          `[relative-deps] Failed to resolve dependency ${name}: failed to find target directory '${libDir}', and the library is not present as normal depenency either`
+          `[relative-deps][ERROR] Failed to resolve dependency ${name}: failed to find target directory '${libDir}', and the library is not present as normal depenency either`
         )
         process.exit(1)
       }
@@ -59,7 +59,7 @@ async function main() {
       buildLibrary(name, libDir)
       packAndInstallLibrary(name, libDir, targetDir)
       fs.writeFileSync(hashStore.file, hashStore.hash)
-      console.log(`[relative-deps] re-installing ${name}... DONE`)
+      console.log(`[relative-deps] Re-installing ${name}... DONE`)
     }
   }
 }
@@ -76,7 +76,7 @@ async function libraryHasChanged(name, libDir, targetDir, hashStore) {
   hashStore.hash = contents
   if (contents === referenceContents) {
     // computed hashes still the same?
-    console.log("[relative-deps] no changes")
+    console.log("[relative-deps] No changes")
     return false
   }
   // Print which files did change
@@ -85,7 +85,7 @@ async function libraryHasChanged(name, libDir, targetDir, hashStore) {
     const refLines = referenceContents.split("\n")
     for (let i = 0; i < contentsLines.length; i++)
       if (contentsLines[i] !== refLines[i]) {
-        console.log("[relative-deps] changed file: " + libFiles[i]) //, contentsLines[i], refLines[i])
+        console.log("[relative-deps] Changed file: " + libFiles[i]) //, contentsLines[i], refLines[i])
         break
       }
   }
@@ -94,6 +94,7 @@ async function libraryHasChanged(name, libDir, targetDir, hashStore) {
 
 async function findFiles(libDir, targetDir) {
   const ignore = ["**/*", "!node_modules", "!.git"]
+  // TODO: use resolved paths here
   if (targetDir.indexOf(libDir) === 0) {
     // The target dir is in the lib directory, make sure that path is excluded
     ignore.push("!" + targetDir.substr(libDir.length + 1).split(path.sep)[0])
@@ -118,8 +119,10 @@ function buildLibrary(name, dir) {
 
   // Run build script if present
   const libraryPkgJson = JSON.parse(fs.readFileSync(dir + "/package.json", "utf8"))
-  if (!libraryPkgJson.name === name)
-    throw new Error(`Mismatch in package name: found '${libraryPkgJson.name}', expected '${name}'`)
+  if (!libraryPkgJson.name === name) {
+    console.error(`[relative-deps][ERROR] Mismatch in package name: found '${libraryPkgJson.name}', expected '${name}'`)
+    process.exit(1)
+  }
   if (libraryPkgJson.scripts && libraryPkgJson.scripts.build) {
     child_process.execSync("yarn build", {
       cwd: dir,
@@ -138,7 +141,10 @@ function packAndInstallLibrary(name, dir, targetDir) {
       stdio: [0, 1, 2]
     })
 
-    if (fs.existsSync(libDestDir)) rimraf.sync(libDestDir)
+    if (fs.existsSync(libDestDir)) {
+      // TODO: should we really remove it? Just overwritting could be fine
+      rimraf.sync(libDestDir)
+    }
     fs.mkdirSync(libDestDir)
 
     child_process.execSync(`tar zxf ${dir}/${tmpName} --strip-components=1 -C ${libDestDir} package`, {

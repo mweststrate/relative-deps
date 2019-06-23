@@ -7,25 +7,51 @@ _Installs dependencies from a local checkout, and keeps them in sync, without th
 
 ---
 
-Relative deps introduces an additional dependency section in `package.json`, called `relativeDependencies`.
-This section contains paths to the local sources of any dependency, building, syncing and installing those over the public versions, where needed.
+# Summary
 
-An example setup can be found [here](https://github.com/mobxjs/mst-gql/pull/40/commits/4d2c0858f8c44a562c0244466b56f79b0ed7591b).
+Relative deps introduces an additional dependency section in `package.json`, called `relativeDependencies`.
+This section contains paths to the local sources of any dependency, that will be build and installed over the publicly available versions, when needed.
+
+Example `package.json`:
+
+```json
+{
+  "name": "my-example-project",
+  "dependencies": {
+    "my-cool-library": "0.0.1"
+  },
+  "relativeDependencies": {
+    "my-cool-library": "../../packages/my-cool-library"
+  },
+  "scripts": {
+    "postinstall": "relative-deps"
+  },
+  "devDependencies": {
+    "relative-deps": "^0.1.0"
+  }
+}
+```
+
+When the relative path can be found, the library at this path will be re-build and re-installed into this project, if the source files have been changed during `postinstall`.
+
+The normal `my-cool-library` dependency will be defaulted to, for those that don't have a local checkout of `my-cool-library`, and to resolve transitive dependencies.
+
+An example setup, where examples project are linked to their hosting library, can be found [here](https://github.com/mobxjs/mst-gql/pull/40/commits/4d2c0858f8c44a562c0244466b56f79b0ed7591b).
 
 # Why
 
 ### The problem
 
-Working on libraries that have examples embedded in the GitHub repo is usually tricky, as the examples are usually against the public, published version of the library. The version that is mentioned in their `package.json`. Often not the latest, definitely not the version currently being checked out and worked out.
+Working on libraries that have examples embedded in the same git repository is usually tricky, as the examples are usually build against the public, published version of the library; the version that is mentioned in their `package.json`.
 
-This complicates many things, like the turn around time of local development (either publish first, or locally re-build and install the dependency). And it complicates CI for similar reasons.
+When working maintaining a project though, it is much more useful to work against the locally checked out version of the library. Published or not.
 
-### Alternative solutions
+### The problems with existing solutions
 
 There are a few existing solutions, but they have their own limitations:
 
-- `yarn link` / `npm link`. These work only if there are no peer dependencies involved. If there are peer dependencies, the linked library looks it up in it's _own_ `node_modules`, instead of the `node_modules` of the hosting project, where it would normally be looked up. This results in peer dependencies ending up "twice" in the dependency tree, which results in unexpected results.
-- `yarn workspaces`. Those solve the above issue by putting all dependencies in one large root level `node_modules`, but, the setup is quite obtrusive and it introduces new problems, for example if the examples use different versions of the same libraries, this blows up quickly.
+- `yarn link` / `npm link`. These work only if there are no peer / shared dependencies involved. If there are shared dependencies, the linked library will resolve those in their _own_ `node_modules`, instead of the `node_modules` of the hosting project, where it would normally be looked up. This results in peer dependencies ending up "twice" in the dependency tree, which often causes confusing behavior.
+- `yarn workspaces`. Those solve the above issue by putting all dependencies in one large root level `node_modules`. However, this setup is in practice quite obtrusive to the whole development setup.
 
 ### How is relative deps different?
 
@@ -80,7 +106,7 @@ For example:
 
 ### Step 2: Link to the relative dependency
 
-To add the same package as a relative dependency, add its name and relative path under the `relativeDependencies` top-level section in the `package.json` of the hosting package. If a dependency is available at it's relative location, this take precedence over the normal dependency, thanks to the post install script. For example:
+To add the same package as a relative dependency, add its name and relative path under the `relativeDependencies` top-level section in the `package.json` of the hosting package. If a dependency is available at it's relative location, this take precedence over the normal dependency, thanks to the `postinstall` script. For example:
 
 ```json
 {
