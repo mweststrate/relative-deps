@@ -133,7 +133,7 @@ function buildLibrary(name, dir) {
 
 function packAndInstallLibrary(name, dir, targetDir) {
   const libDestDir = targetDir + "/node_modules/" + name
-  const tmpName = `${name}${Date.now()}.tgz`
+  const tmpName = `${name}${Date.now()}.tgz`.replace(/[\s\/]/g, '-',);
   try {
     console.log("[relative-deps] Copying to local node_modules")
     child_process.execSync(`yarn pack --filename ${tmpName}`, {
