@@ -164,4 +164,4 @@ async function getFileHash(file) {
   })
 }
 
-main()
+main().catch(e => console.error(e))
