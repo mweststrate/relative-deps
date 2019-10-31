@@ -7,6 +7,10 @@ const rimraf = require("rimraf")
 const globby = require("globby")
 const checksum = require("checksum")
 
+// Under Windows, we must invoke yarn.cmd if we use execFile* and
+// we need to use execFile* to deal with spaces in args that are file names.
+const yarnCmd = process.platform === "win32" ? "yarn.cmd" : "yarn"
+
 async function main() {
   const projectPkgJson = readPkgUp.sync()
 
@@ -29,18 +33,14 @@ async function main() {
       (projectPkgJson.package.devDependencies && projectPkgJson.package.devDependencies[name])
 
     if (!regularDep) {
-      console.warn(
-        `[relative-deps][WARN] The relative dependency '${name}' should also be added as normal- or dev-dependency`
-      )
+      console.warn(`[relative-deps][WARN] The relative dependency '${name}' should also be added as normal- or dev-dependency`)
     }
 
     // Check if target dir exists
     if (!fs.existsSync(libDir)) {
       // Nope, but is the dependency mentioned as normal dependency in the package.json? Use that one
       if (regularDep) {
-        console.warn(
-          `[relative-deps][WARN] Could not find target directory '${libDir}', using normally installed version ('${regularDep}') instead`
-        )
+        console.warn(`[relative-deps][WARN] Could not find target directory '${libDir}', using normally installed version ('${regularDep}') instead`)
         return
       } else {
         console.error(
@@ -108,10 +108,10 @@ async function findFiles(libDir, targetDir) {
 }
 
 function buildLibrary(name, dir) {
-  console.log("[relative-deps] Building " + name)
   // Run install if never done before
   if (!fs.existsSync(path.join(dir, "node_modules"))) {
-    child_process.execSync("yarn install", {
+    console.log(`[relative-deps] Running 'yarn install' in ${dir}`)
+    child_process.execFileSync(yarnCmd, ["install"], {
       cwd: dir,
       stdio: [0, 1, 2]
     })
@@ -124,7 +124,8 @@ function buildLibrary(name, dir) {
     process.exit(1)
   }
   if (libraryPkgJson.scripts && libraryPkgJson.scripts.build) {
-    child_process.execSync("yarn build", {
+    console.log(`[relative-deps] Building ${name} in ${dir}`)
+    child_process.execFileSync(yarnCmd, ["build"], {
       cwd: dir,
       stdio: [0, 1, 2]
     })
@@ -133,10 +134,12 @@ function buildLibrary(name, dir) {
 
 function packAndInstallLibrary(name, dir, targetDir) {
   const libDestDir = path.join(targetDir, "node_modules", name)
-  const tmpName = `${name}${Date.now()}.tgz`.replace(/[\s\/]/g, '-',);
+  // Need to replace white space, slashes and at-signs in name
+  const tmpName = `${name}${Date.now()}.tgz`.replace(/[\s\/]/g, "-").replace(/@/g, "at-")
+  const fullTmpName = path.join(dir, tmpName)
   try {
     console.log("[relative-deps] Copying to local node_modules")
-    child_process.execSync(`yarn pack --filename ${tmpName}`, {
+    child_process.execFileSync(yarnCmd, ["pack", "--filename", tmpName], {
       cwd: dir,
       stdio: [0, 1, 2]
     })
@@ -147,11 +150,16 @@ function packAndInstallLibrary(name, dir, targetDir) {
     }
     fs.mkdirSync(libDestDir)
 
-    child_process.execSync(`tar zxf ${dir}/${tmpName} --strip-components=1 -C ${libDestDir} package`, {
-      stdio: [0, 1, 2]
-    })
+    console.log(`[relative-deps] Extracting "${fullTmpName}" to ${libDestDir}`)
+    child_process.execFileSync(
+      "tar",
+      ["zxf", path.relative(process.cwd(), fullTmpName), "--strip-components=1", "-C", path.relative(process.cwd(), libDestDir), "package"],
+      {
+        stdio: [0, 1, 2]
+      }
+    )
   } finally {
-    fs.unlinkSync(path.join(dir, tmpName))
+    fs.unlinkSync(fullTmpName)
   }
 }
 
@@ -164,4 +172,4 @@ async function getFileHash(file) {
   })
 }
 
-main()
+main().catch(e => console.error(e))
