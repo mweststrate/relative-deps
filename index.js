@@ -65,12 +65,12 @@ async function main() {
 }
 
 async function libraryHasChanged(name, libDir, targetDir, hashStore) {
-  const hashFile = targetDir + "/node_modules/" + name + "/.relative-deps-hash"
+  const hashFile = path.join(targetDir, "node_modules", name, ".relative-deps-hash")
   const referenceContents = fs.existsSync(hashFile) ? fs.readFileSync(hashFile, "utf8") : ""
   // compute the hahses
   const libFiles = await findFiles(libDir, targetDir)
   const hashes = []
-  for (file of libFiles) hashes.push(await getFileHash(libDir + "/" + file))
+  for (file of libFiles) hashes.push(await getFileHash(path.join(libDir, file)))
   const contents = libFiles.map((file, index) => hashes[index] + " " + file).join("\n")
   hashStore.file = hashFile
   hashStore.hash = contents
@@ -110,7 +110,7 @@ async function findFiles(libDir, targetDir) {
 function buildLibrary(name, dir) {
   console.log("[relative-deps] Building " + name)
   // Run install if never done before
-  if (!fs.existsSync(dir + "/node_modules")) {
+  if (!fs.existsSync(path.join(dir, "node_modules"))) {
     child_process.execSync("yarn install", {
       cwd: dir,
       stdio: [0, 1, 2]
@@ -118,7 +118,7 @@ function buildLibrary(name, dir) {
   }
 
   // Run build script if present
-  const libraryPkgJson = JSON.parse(fs.readFileSync(dir + "/package.json", "utf8"))
+  const libraryPkgJson = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"))
   if (!libraryPkgJson.name === name) {
     console.error(`[relative-deps][ERROR] Mismatch in package name: found '${libraryPkgJson.name}', expected '${name}'`)
     process.exit(1)
@@ -132,7 +132,7 @@ function buildLibrary(name, dir) {
 }
 
 function packAndInstallLibrary(name, dir, targetDir) {
-  const libDestDir = targetDir + "/node_modules/" + name
+  const libDestDir = path.join(targetDir, "node_modules", name)
   const tmpName = `${name}${Date.now()}.tgz`.replace(/[\s\/]/g, '-',);
   try {
     console.log("[relative-deps] Copying to local node_modules")
@@ -151,7 +151,7 @@ function packAndInstallLibrary(name, dir, targetDir) {
       stdio: [0, 1, 2]
     })
   } finally {
-    fs.unlinkSync(dir + "/" + tmpName)
+    fs.unlinkSync(path.join(dir, tmpName))
   }
 }
 
