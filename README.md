@@ -95,13 +95,14 @@ For example:
 ```json
 {
   "name": "mobx-react-demo",
-  "relativeDependencies": {
-    "mobx-react": "../../"
-  },
   "dependencies": {
     "mobx-react": "^4.0.0"
   }
 }
+```
+
+```bash
+yarn
 ```
 
 ### Step 2: Link to the relative dependency
