@@ -10,7 +10,7 @@ _Installs dependencies from a local checkout, and keeps them in sync, without th
 # Summary
 
 Relative deps introduces an additional dependency section in `package.json`, called `relativeDependencies`.
-This section contains paths to the local sources of any dependency, that will be build and installed over the publicly available versions, when needed.
+This section contains paths to the local sources of any dependency, that will be built and installed over the publicly available versions, when needed.
 
 Example `package.json`:
 
@@ -32,7 +32,7 @@ Example `package.json`:
 }
 ```
 
-When the relative path can be found, the library at this path will be re-build and re-installed into this project, if the source files have been changed during `postinstall`.
+When the relative path can be found, the library at this path will be re-built and re-installed into this project, if the source files have been changed during `postinstall`.
 
 The normal `my-cool-library` dependency will be defaulted to, for those that don't have a local checkout of `my-cool-library`, and to resolve transitive dependencies.
 
@@ -42,7 +42,7 @@ An example setup, where examples project are linked to their hosting library, ca
 
 ### The problem
 
-Working on libraries that have examples embedded in the same git repository is usually tricky, as the examples are usually build against the public, published version of the library; the version that is mentioned in their `package.json`.
+Working on libraries that have examples embedded in the same git repository is usually tricky, as the examples are usually built against the public, published version of the library; the version that is mentioned in their `package.json`.
 
 When working maintaining a project though, it is much more useful to work against the locally checked out version of the library. Published or not.
 
