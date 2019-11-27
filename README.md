@@ -24,7 +24,7 @@ Example `package.json`:
     "my-cool-library": "../../packages/my-cool-library"
   },
   "scripts": {
-    "postinstall": "relative-deps"
+    "prepare": "relative-deps"
   },
   "devDependencies": {
     "relative-deps": "^0.1.0"
@@ -32,7 +32,7 @@ Example `package.json`:
 }
 ```
 
-When the relative path can be found, the library at this path will be re-built and re-installed into this project, if the source files have been changed during `postinstall`.
+When the relative path can be found, the library at this path will be re-built and re-installed into this project, if the source files have been changed during `prepare`.
 
 The normal `my-cool-library` dependency will be defaulted to, for those that don't have a local checkout of `my-cool-library`, and to resolve transitive dependencies.
 
@@ -55,7 +55,7 @@ There are a few existing solutions, but they have their own limitations:
 
 ### How is relative deps different?
 
-Relative deps doesn't fight the problem but tries to emulate a "normal" install. It builds the "linked" library on `postinstall`, packs it, and unpacks it in the `node_modules` of the hosting project. Since there is no linking, or shared `node_modules` involved, the folder structure ends up to be exactly the same as if the thing was installed directly from `yarn` / `npm`. Which avoids a plethora of problems.
+Relative deps doesn't fight the problem but tries to emulate a "normal" install. It builds the "linked" library on `prepare` (that is, after installing all deps), packs it, and unpacks it in the `node_modules` of the hosting project. Since there is no linking, or shared `node_modules` involved, the folder structure ends up to be exactly the same as if the thing was installed directly from `yarn` / `npm`. Which avoids a plethora of problems.
 
 Since building a linked package every time `yarn install` is run is expensive, this tool will take a hash of the directory contents of the library first, and only build and install if something changed.
 
@@ -67,23 +67,25 @@ Install `relative-deps` as developer dependency. Either in the hosting project, 
 
 In the hosting project, add the following `package.json` script:
 
-`"postinstall": "yarn relative-deps"`
+`"prepare": "yarn relative-deps"`
 
 This will re-install any relative dependency if needed when running `yarn install`.
 
-Optionally, you can add this step also for more scripts, for example:
+Optionally, you can add this step also for more scripts, for example before starting or building your project, for example:
 
 ```json
 {
   "name": "mobx-react-demo",
   "scripts": {
-    "postinstall": "relative-deps",
+    "prepare": "relative-deps",
     "prestart": "relative-deps",
     "prebuild": "relative-deps",
     "pretest": "relative-deps"
   }
 }
 ```
+
+In general, this doesn't add to much overhead, since usually relative-deps is able to determine rather quickly (~0.5 sec) that there are no changes.
 
 # Adding a relative dependency
 
@@ -107,7 +109,7 @@ yarn
 
 ### Step 2: Link to the relative dependency
 
-To add the same package as a relative dependency, add its name and relative path under the `relativeDependencies` top-level section in the `package.json` of the hosting package. If a dependency is available at it's relative location, this take precedence over the normal dependency, thanks to the `postinstall` script. For example:
+To add the same package as a relative dependency, add its name and relative path under the `relativeDependencies` top-level section in the `package.json` of the hosting package. If a dependency is available at it's relative location, this take precedence over the normal dependency, thanks to the `prepare` script. For example:
 
 ```json
 {
@@ -154,3 +156,8 @@ Roughly, it works like this (obviously this can get out of date quickly):
   - run yarn install --no-dev-deps in target dir
 - done
 ```
+
+# Tips
+
+Tip: use the `postinstall` hook wherever applicable, if your dependency manager does not support `prepare` hooks yet.
+
