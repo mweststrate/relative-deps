@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 const path = require("path")
 const child_process = require("child_process")
 const fs = require("fs")
@@ -6,12 +5,13 @@ const readPkgUp = require("read-pkg-up")
 const rimraf = require("rimraf")
 const globby = require("globby")
 const checksum = require("checksum")
+const merge = require("lodash/merge")
 
 // Under Windows, we must invoke yarn.cmd if we use execFile* and
 // we need to use execFile* to deal with spaces in args that are file names.
 const yarnCmd = process.platform === "win32" ? "yarn.cmd" : "yarn"
 
-async function main() {
+async function installRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
 
   const relativeDependencies = projectPkgJson.package.relativeDependencies
@@ -172,4 +172,115 @@ async function getFileHash(file) {
   })
 }
 
-main().catch(e => console.error(e))
+function addScriptToPackage(script) {
+  let pkg = getPackageJson()
+  if (!pkg.scripts) {
+    pkg.scripts = {}
+  }
+
+  const msg = `[relative-deps] Adding relative-deps to ${script} script in package.json`
+
+  if (!pkg.scripts[script]) {
+    console.log(msg);
+    pkg.scripts[script] = "relative-deps"
+
+  } else if(!pkg.scripts[script].includes("relative-deps")) {
+    console.log(msg);
+    pkg.scripts[script] = `${pkg.scripts[script]} && relative-deps`
+  }
+  setPackageData(pkg)
+}
+
+function installRelativeDepsPackage() {
+  let pkg = getPackageJson()
+
+  if (!(
+    (pkg.devDependencies && pkg.devDependencies["relative-deps"]) ||
+    (pkg.dependencies && pkg.dependencies["relative-deps"])
+  )) {
+    console.log('[relative-deps] Installing relative-deps package')
+    child_process.execSync(`${yarnCmd} add -D relative-deps`)
+  }
+}
+
+function setupEmptyRelativeDeps () {
+  let pkg = getPackageJson()
+
+  if (!pkg.relativeDependencies) {
+    console.log(`[relative-deps] Setting up relativeDependencies section in package.json`)
+    pkg.relativeDependencies = {}
+    setPackageData(pkg)
+  }
+}
+
+function initRelativeDeps({ script }) {
+  installRelativeDepsPackage()
+  setupEmptyRelativeDeps()
+  addScriptToPackage(script)
+}
+
+async function addRelativeDeps({ paths, dev, script }) {
+  initRelativeDeps({ script })
+
+  if (!paths || paths.length === 0) {
+    console.log(`[relative-deps][WARN] no paths provided running ${script}`)
+    child_process.execSync(`${yarnCmd} ${script}`)
+    return
+  }
+  const libraries = paths.map(relPath => {
+    const libPackagePath = path.resolve(process.cwd(), relPath, "package.json")
+    if (!fs.existsSync(libPackagePath)) {
+      console.error(
+        `[relative-deps][ERROR] Failed to resolve dependency ${relPath}`
+      )
+      process.exit(1)
+    }
+
+    const libraryPackageJson = JSON.parse(fs.readFileSync(libPackagePath, "utf-8"))
+
+    return {
+      relPath,
+      name: libraryPackageJson.name,
+      version: libraryPackageJson.version
+    }
+  })
+
+  let pkg = getPackageJson()
+
+  const depsKey = dev ? "devDependencies" : "dependencies"
+  if (!pkg[depsKey]) pkg[depsKey] = {}
+
+  libraries.forEach(library => {
+    if (!pkg[depsKey][library.name]) {
+      // console.log()
+      child_process.execSync(
+        `${yarnCmd} add ${dev ? "-D" : ""} ${library.name}${library.version ? `@${library.version}` : ""}`
+      )
+    }
+  })
+
+  if (!pkg.relativeDependencies) pkg.relativeDependencies = {}
+
+  libraries.forEach(dependency => {
+    pkg.relativeDependencies[dependency.name] = dependency.relPath
+  })
+
+  setPackageData(pkg)
+  await installRelativeDeps()
+}
+
+function setPackageData(pkgData) {
+  const source = getPackageJson()
+  fs.writeFileSync(
+    path.join(process.cwd(), "package.json"),
+    JSON.stringify(merge(source, pkgData), null, 2)
+  )
+}
+
+function getPackageJson() {
+  return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), "utf-8"));
+}
+
+module.exports.installRelativeDeps = installRelativeDeps;
+module.exports.initRelativeDeps = initRelativeDeps;
+module.exports.addRelativeDeps = addRelativeDeps;

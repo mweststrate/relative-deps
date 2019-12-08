@@ -122,6 +122,12 @@ To add the same package as a relative dependency, add its name and relative path
 
 After that, run `yarn` to complete the proces and install the relative dependency for the first time
 
+Another way of adding dependency is running
+
+```bash
+npx relative-deps add ../path-to-dependency
+```
+
 Example of a [repository migration to relative-deps](https://github.com/mobxjs/mst-gql/pull/40/commits/4d2c0858f8c44a562c0244466b56f79b0ed7591b)
 
 ### Step 3: Run `yarn relative-deps` when devving!
