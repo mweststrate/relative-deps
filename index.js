@@ -254,7 +254,7 @@ async function addRelativeDeps({ paths, dev, script }) {
     if (!pkg[depsKey][library.name]) {
       // console.log()
       child_process.execSync(
-        `${yarnCmd} add ${dev ? "-D" : ""} ${library.name}${library.version ? `@${library.version}` : ""}`
+        `${yarnCmd} add ${dev ? "-D" : ""} ${library.name}`
       )
     }
   })
