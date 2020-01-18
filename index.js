@@ -252,10 +252,13 @@ async function addRelativeDeps({ paths, dev, script }) {
 
   libraries.forEach(library => {
     if (!pkg[depsKey][library.name]) {
-      // console.log()
-      child_process.execSync(
-        `${yarnCmd} add ${dev ? "-D" : ""} ${library.name}`
-      )
+      try {
+        child_process.execSync(
+          `${yarnCmd} add ${dev ? "-D" : ""} ${library.name}`, {stdio: "ignore"}
+        )
+      } catch {
+        console.log(`[relative-deps][WARN] Unable to fetch ${library.name} from registry. Installing as a relative dependency only.`)
+      }
     }
   })
 
