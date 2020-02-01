@@ -67,7 +67,7 @@ Install `relative-deps` as developer dependency. Either in the hosting project, 
 
 In the hosting project, add the following `package.json` script:
 
-`"prepare": "yarn relative-deps"`
+`"prepare": "relative-deps"`
 
 This will re-install any relative dependency if needed when running `yarn install`.
 
