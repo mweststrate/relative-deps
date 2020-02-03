@@ -27,7 +27,7 @@ Example `package.json`:
     "prepare": "relative-deps"
   },
   "devDependencies": {
-    "relative-deps": "^0.2.0"
+    "relative-deps": "^1.0.0"
   }
 }
 ```
@@ -78,7 +78,7 @@ Running this script will install `relative-deps`, add script and initialize empt
 {
   "name": "my-project",
   "devDependencies": {
-    "relative-deps": "^0.2.0"
+    "relative-deps": "^1.0.0"
   },
   "relativeDependencies": {},
   "scripts": {
@@ -130,7 +130,7 @@ Alias `-D`. Installs relative dependency in `devDependencies` section.
     "prepare": "relative-deps"
   },
   "devDependencies": {
-    "relative-deps": "^0.2.0"
+    "relative-deps": "^1.0.0"
   }
 }
 ```
@@ -173,4 +173,3 @@ Roughly, it works like this (obviously this can get out of date quickly):
 # Tips
 
 Tip: use the `postinstall` hook wherever applicable, if your dependency manager does not support `prepare` hooks yet.
-
