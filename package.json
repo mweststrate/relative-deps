@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "relative-deps": "./index.js"
+    "relative-deps": "./cli.js"
   },
   "repository": {
     "type": "git",
@@ -29,7 +29,9 @@
   "dependencies": {
     "checksum": "^0.1.1",
     "globby": "^9.2.0",
+    "lodash": "^4.17.15",
     "read-pkg-up": "^6.0.0",
-    "rimraf": "^2.6.3"
+    "rimraf": "^2.6.3",
+    "yargs": "^15.0.2"
   }
 }

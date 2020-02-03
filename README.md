@@ -16,9 +16,9 @@ Example `package.json`:
 
 ```json
 {
-  "name": "my-example-project",
+  "name": "my-project",
   "dependencies": {
-    "my-cool-library": "0.0.1"
+    "my-cool-library": "0.1.0"
   },
   "relativeDependencies": {
     "my-cool-library": "../../packages/my-cool-library"
@@ -27,7 +27,7 @@ Example `package.json`:
     "prepare": "relative-deps"
   },
   "devDependencies": {
-    "relative-deps": "^0.1.0"
+    "relative-deps": "^0.2.0"
   }
 }
 ```
@@ -59,23 +59,39 @@ Relative deps doesn't fight the problem but tries to emulate a "normal" install.
 
 Since building a linked package every time `yarn install` is run is expensive, this tool will take a hash of the directory contents of the library first, and only build and install if something changed.
 
-# Installation
+# Usage
 
-Install `relative-deps` as developer dependency. Either in the hosting project, or somewhere higher in the directory structure:
+## Installation
 
-`yarn add -D relative-deps`.
+```bash
+npx relative-deps init
+```
+Options:
 
-In the hosting project, add the following `package.json` script:
+* `--script`
 
-`"prepare": "yarn relative-deps"`
+Alias `-S`. Default: `prepare`. Script name which is using for running `relative-deps`.
 
-This will re-install any relative dependency if needed when running `yarn install`.
+Running this script will install `relative-deps`, add script and initialize empty `relativeDependencies` section.
+
+```json
+{
+  "name": "my-project",
+  "devDependencies": {
+    "relative-deps": "^0.2.0"
+  },
+  "relativeDependencies": {},
+  "scripts": {
+    "prepare": "relative-deps"
+  }
+}
+```
 
 Optionally, you can add this step also for more scripts, for example before starting or building your project, for example:
 
 ```json
 {
-  "name": "mobx-react-demo",
+  "name": "my-project",
   "scripts": {
     "prepare": "relative-deps",
     "prestart": "relative-deps",
@@ -87,44 +103,41 @@ Optionally, you can add this step also for more scripts, for example before star
 
 In general, this doesn't add to much overhead, since usually relative-deps is able to determine rather quickly (~0.5 sec) that there are no changes.
 
-# Adding a relative dependency
+## Adding a relative dependency
 
-### Step 1: Install the dependency as normal dependency
-
-First, can install a relative dependency as normal dependency. The benefit of this is that anybody that checks out the project, but doesn't have a checkout of the targeted library, gets the normally published version. (It also ensures that transitive dependencies are resolved, if the package to be installed has no relative dependencies, this step is optional. ).
-For example:
-
-```json
-{
-  "name": "mobx-react-demo",
-  "dependencies": {
-    "mobx-react": "^4.0.0"
-  }
-}
-```
+Running following script will initialize `relative-deps` if not initialized yet, find the package at the provided path, install it as normal dependency and pack relative-dependency.
 
 ```bash
-yarn
+npx relative-deps add ../../packages/my-cool-library
 ```
 
-### Step 2: Link to the relative dependency
+Options:
 
-To add the same package as a relative dependency, add its name and relative path under the `relativeDependencies` top-level section in the `package.json` of the hosting package. If a dependency is available at it's relative location, this take precedence over the normal dependency, thanks to the `prepare` script. For example:
+* `--dev`
+
+Alias `-D`. Installs relative dependency in `devDependencies` section.
 
 ```json
 {
-  "name": "mobx-react-demo",
+  "name": "my-project",
+  "dependencies": {
+    "my-cool-library": "0.1.0"
+  },
   "relativeDependencies": {
-    "mobx-react": "../../"
+    "my-cool-library": "../../packages/my-cool-library"
+  },
+  "scripts": {
+    "prepare": "relative-deps"
+  },
+  "devDependencies": {
+    "relative-deps": "^0.2.0"
   }
 }
 ```
-
-After that, run `yarn` to complete the proces and install the relative dependency for the first time
 
 Example of a [repository migration to relative-deps](https://github.com/mobxjs/mst-gql/pull/40/commits/4d2c0858f8c44a562c0244466b56f79b0ed7591b)
 
-### Step 3: Run `yarn relative-deps` when devving!
+## Run `yarn relative-deps` when devving!
 
 The relative deps will automatically be checked for changes, based on the hooks you've set up during [installation](#installation).
 
