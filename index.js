@@ -148,7 +148,7 @@ function packAndInstallLibrary(name, dir, targetDir) {
       // TODO: should we really remove it? Just overwritting could be fine
       rimraf.sync(libDestDir)
     }
-    fs.mkdirSync(libDestDir)
+    fs.mkdirSync(libDestDir, { recursive: true })
 
     console.log(`[relative-deps] Extracting "${fullTmpName}" to ${libDestDir}`)
     child_process.execFileSync(
