@@ -6,10 +6,7 @@ const rimraf = require("rimraf")
 const globby = require("globby")
 const checksum = require("checksum")
 const merge = require("lodash/merge")
-
-// Under Windows, we must invoke yarn.cmd if we use execFile* and
-// we need to use execFile* to deal with spaces in args that are file names.
-const yarnCmd = process.platform === "win32" ? "yarn.cmd" : "yarn"
+const { spawn } = require("yarn-or-npm")
 
 async function installRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
@@ -110,11 +107,8 @@ async function findFiles(libDir, targetDir) {
 function buildLibrary(name, dir) {
   // Run install if never done before
   if (!fs.existsSync(path.join(dir, "node_modules"))) {
-    console.log(`[relative-deps] Running 'yarn install' in ${dir}`)
-    child_process.execFileSync(yarnCmd, ["install"], {
-      cwd: dir,
-      stdio: [0, 1, 2]
-    })
+    console.log(`[relative-deps] Running 'install' in ${dir}`)
+    spawn.sync(["install"], {  cwd: dir, stdio: [0, 1, 2] })
   }
 
   // Run build script if present
@@ -125,24 +119,16 @@ function buildLibrary(name, dir) {
   }
   if (libraryPkgJson.scripts && libraryPkgJson.scripts.build) {
     console.log(`[relative-deps] Building ${name} in ${dir}`)
-    child_process.execFileSync(yarnCmd, ["build"], {
-      cwd: dir,
-      stdio: [0, 1, 2]
-    })
+    spawn.sync(["build"], {  cwd: dir, stdio: [0, 1, 2] })
   }
 }
 
 function packAndInstallLibrary(name, dir, targetDir) {
   const libDestDir = path.join(targetDir, "node_modules", name)
-  // Need to replace white space, slashes and at-signs in name
-  const tmpName = `${name}${Date.now()}.tgz`.replace(/[\s\/]/g, "-").replace(/@/g, "at-")
-  const fullTmpName = path.join(dir, tmpName)
+  let fullPackageName
   try {
     console.log("[relative-deps] Copying to local node_modules")
-    child_process.execFileSync(yarnCmd, ["pack", "--filename", tmpName], {
-      cwd: dir,
-      stdio: [0, 1, 2]
-    })
+    spawn.sync(["pack"], { cwd: dir, stdio: [0, 1, 2] })
 
     if (fs.existsSync(libDestDir)) {
       // TODO: should we really remove it? Just overwritting could be fine
@@ -150,16 +136,21 @@ function packAndInstallLibrary(name, dir, targetDir) {
     }
     fs.mkdirSync(libDestDir, { recursive: true })
 
-    console.log(`[relative-deps] Extracting "${fullTmpName}" to ${libDestDir}`)
+    const regex = new RegExp(`^${name}(.*).tgz$`)
+    const packagedName = fs.readdirSync(dir).find(file => regex.test(file))
+    fullPackageName = path.join(dir, packagedName)
+
+    console.log(`[relative-deps] Extracting "${fullPackageName}" to ${libDestDir}`)
+
     child_process.execFileSync(
       "tar",
-      ["zxf", path.relative(process.cwd(), fullTmpName), "--strip-components=1", "-C", path.relative(process.cwd(), libDestDir), "package"],
-      {
-        stdio: [0, 1, 2]
-      }
+      ["zxf", path.relative(process.cwd(), fullPackageName), "--strip-components=1", "-C", path.relative(process.cwd(), libDestDir), "package"],
+      { stdio: [0, 1, 2] }
     )
   } finally {
-    fs.unlinkSync(fullTmpName)
+    if (fullPackageName) {
+      fs.unlinkSync(fullPackageName)
+    }
   }
 }
 
@@ -181,11 +172,11 @@ function addScriptToPackage(script) {
   const msg = `[relative-deps] Adding relative-deps to ${script} script in package.json`
 
   if (!pkg.scripts[script]) {
-    console.log(msg);
+    console.log(msg)
     pkg.scripts[script] = "relative-deps"
 
   } else if(!pkg.scripts[script].includes("relative-deps")) {
-    console.log(msg);
+    console.log(msg)
     pkg.scripts[script] = `${pkg.scripts[script]} && relative-deps`
   }
   setPackageData(pkg)
@@ -199,7 +190,7 @@ function installRelativeDepsPackage() {
     (pkg.dependencies && pkg.dependencies["relative-deps"])
   )) {
     console.log('[relative-deps] Installing relative-deps package')
-    child_process.execSync(`${yarnCmd} add -D relative-deps`)
+    spawn.sync("add -D relative-deps")
   }
 }
 
@@ -224,7 +215,7 @@ async function addRelativeDeps({ paths, dev, script }) {
 
   if (!paths || paths.length === 0) {
     console.log(`[relative-deps][WARN] no paths provided running ${script}`)
-    child_process.execSync(`${yarnCmd} ${script}`)
+    spawn.sync([script])
     return
   }
   const libraries = paths.map(relPath => {
@@ -253,10 +244,8 @@ async function addRelativeDeps({ paths, dev, script }) {
   libraries.forEach(library => {
     if (!pkg[depsKey][library.name]) {
       try {
-        child_process.execSync(
-          `${yarnCmd} add ${dev ? "-D" : ""} ${library.name}`, {stdio: "ignore"}
-        )
-      } catch {
+        spawn.sync([`add ${dev ? "-D" : ""} ${library.name}`], { stdio: "ignore" })
+      } catch (_e) {
         console.log(`[relative-deps][WARN] Unable to fetch ${library.name} from registry. Installing as a relative dependency only.`)
       }
     }
@@ -281,9 +270,9 @@ function setPackageData(pkgData) {
 }
 
 function getPackageJson() {
-  return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), "utf-8"));
+  return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), "utf-8"))
 }
 
-module.exports.installRelativeDeps = installRelativeDeps;
-module.exports.initRelativeDeps = initRelativeDeps;
-module.exports.addRelativeDeps = addRelativeDeps;
+module.exports.installRelativeDeps = installRelativeDeps
+module.exports.initRelativeDeps = initRelativeDeps
+module.exports.addRelativeDeps = addRelativeDeps
