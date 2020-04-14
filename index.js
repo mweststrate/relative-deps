@@ -136,7 +136,9 @@ function packAndInstallLibrary(name, dir, targetDir) {
     }
     fs.mkdirSync(libDestDir, { recursive: true })
 
-    const regex = new RegExp(`^${name}(.*).tgz$`)
+    const tmpName = name.replace(/[\s\/]/g, "-").replace(/@/g, "at-")
+    const regex = new RegExp(`^${tmpName}(.*).tgz$`)
+
     const packagedName = fs.readdirSync(dir).find(file => regex.test(file))
     fullPackageName = path.join(dir, packagedName)
 
@@ -190,7 +192,7 @@ function installRelativeDepsPackage() {
     (pkg.dependencies && pkg.dependencies["relative-deps"])
   )) {
     console.log('[relative-deps] Installing relative-deps package')
-    spawn.sync("add -D relative-deps")
+    spawn.sync(["add -D relative-deps"])
   }
 }
 
