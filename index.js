@@ -6,6 +6,7 @@ const rimraf = require("rimraf")
 const globby = require("globby")
 const checksum = require("checksum")
 const merge = require("lodash/merge")
+const debounce = require('lodash/debounce')
 const { spawn } = require("yarn-or-npm")
 
 async function installRelativeDeps() {
@@ -61,6 +62,21 @@ async function installRelativeDeps() {
   }
 }
 
+async function watchRelativeDeps() {
+  const projectPkgJson = readPkgUp.sync()
+
+  const relativeDependencies = projectPkgJson.package.relativeDependencies
+
+  if (!relativeDependencies) {
+    console.warn("[relative-deps][WARN] No 'relativeDependencies' specified in package.json")
+    process.exit(0)
+  }
+
+  Object.values(relativeDependencies).forEach(path => {
+    fs.watch(path, { recursive: true }, debounce(installRelativeDeps, 500))
+  });
+}
+
 async function libraryHasChanged(name, libDir, targetDir, hashStore) {
   const hashFile = path.join(targetDir, "node_modules", name, ".relative-deps-hash")
   const referenceContents = fs.existsSync(hashFile) ? fs.readFileSync(hashFile, "utf8") : ""
@@ -108,7 +124,7 @@ function buildLibrary(name, dir) {
   // Run install if never done before
   if (!fs.existsSync(path.join(dir, "node_modules"))) {
     console.log(`[relative-deps] Running 'install' in ${dir}`)
-    spawn.sync(["install"], {  cwd: dir, stdio: [0, 1, 2] })
+    spawn.sync(["install"], { cwd: dir, stdio: [0, 1, 2] })
   }
 
   // Run build script if present
@@ -119,7 +135,7 @@ function buildLibrary(name, dir) {
   }
   if (libraryPkgJson.scripts && libraryPkgJson.scripts.build) {
     console.log(`[relative-deps] Building ${name} in ${dir}`)
-    spawn.sync(["build"], {  cwd: dir, stdio: [0, 1, 2] })
+    spawn.sync(["build"], { cwd: dir, stdio: [0, 1, 2] })
   }
 }
 
@@ -177,7 +193,7 @@ function addScriptToPackage(script) {
     console.log(msg)
     pkg.scripts[script] = "relative-deps"
 
-  } else if(!pkg.scripts[script].includes("relative-deps")) {
+  } else if (!pkg.scripts[script].includes("relative-deps")) {
     console.log(msg)
     pkg.scripts[script] = `${pkg.scripts[script]} && relative-deps`
   }
@@ -196,7 +212,7 @@ function installRelativeDepsPackage() {
   }
 }
 
-function setupEmptyRelativeDeps () {
+function setupEmptyRelativeDeps() {
   let pkg = getPackageJson()
 
   if (!pkg.relativeDependencies) {
@@ -275,6 +291,7 @@ function getPackageJson() {
   return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), "utf-8"))
 }
 
+module.exports.watchRelativeDeps = watchRelativeDeps
 module.exports.installRelativeDeps = installRelativeDeps
 module.exports.initRelativeDeps = initRelativeDeps
 module.exports.addRelativeDeps = addRelativeDeps
