@@ -10,8 +10,10 @@ const { spawn } = require("yarn-or-npm")
 
 async function installRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
+  const config = getConfig()
 
-  const relativeDependencies = projectPkgJson.package.relativeDependencies
+  // support old `relativeDependencies` config in package.json file as a fallback
+  const relativeDependencies = config || projectPkgJson.package.relativeDependencies
 
   if (!relativeDependencies) {
     console.warn("[relative-deps][WARN] No 'relativeDependencies' specified in package.json")
@@ -185,24 +187,20 @@ function addScriptToPackage(script) {
 }
 
 function installRelativeDepsPackage() {
-  let pkg = getPackageJson()
+  let config = getConfig();
 
-  if (!(
-    (pkg.devDependencies && pkg.devDependencies["relative-deps"]) ||
-    (pkg.dependencies && pkg.dependencies["relative-deps"])
-  )) {
+  if (config) {
     console.log('[relative-deps] Installing relative-deps package')
     spawn.sync(["add -D relative-deps"])
   }
 }
 
 function setupEmptyRelativeDeps () {
-  let pkg = getPackageJson()
+  let config = getConfig()
 
-  if (!pkg.relativeDependencies) {
-    console.log(`[relative-deps] Setting up relativeDependencies section in package.json`)
-    pkg.relativeDependencies = {}
-    setPackageData(pkg)
+  if (!config) {
+    console.log(`[relative-deps] Setting up relativeDependencies config file`)
+    setConfig({})
   }
 }
 
@@ -239,6 +237,7 @@ async function addRelativeDeps({ paths, dev, script }) {
   })
 
   let pkg = getPackageJson()
+  let config = getConfig()
 
   const depsKey = dev ? "devDependencies" : "dependencies"
   if (!pkg[depsKey]) pkg[depsKey] = {}
@@ -253,13 +252,12 @@ async function addRelativeDeps({ paths, dev, script }) {
     }
   })
 
-  if (!pkg.relativeDependencies) pkg.relativeDependencies = {}
-
   libraries.forEach(dependency => {
-    pkg.relativeDependencies[dependency.name] = dependency.relPath
+    config[dependency.name] = dependency.relPath
   })
 
   setPackageData(pkg)
+  setConfig(config)
   await installRelativeDeps()
 }
 
@@ -271,8 +269,21 @@ function setPackageData(pkgData) {
   )
 }
 
+function setConfig(config) {
+  fs.writeFileSync(
+    path.join(process.cwd(), "relative-deps.json"),
+    JSON.stringify(config, null, 2)
+  )
+}
+
 function getPackageJson() {
   return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), "utf-8"))
+}
+
+function getConfig() {
+  const configFilePath = path.join(process.cwd(), 'relative-deps.json');
+  const config = fs.existsSync(configFilePath) ? fs.readFileSync(configFilePath, "utf-8") : null
+  return JSON.parse(config) || null
 }
 
 module.exports.installRelativeDeps = installRelativeDeps

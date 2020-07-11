@@ -9,26 +9,14 @@ _Installs dependencies from a local checkout, and keeps them in sync, without th
 
 # Summary
 
-Relative deps introduces an additional dependency section in `package.json`, called `relativeDependencies`.
-This section contains paths to the local sources of any dependency, that will be built and installed over the publicly available versions, when needed.
+Relative deps introduces an additional dependency section in a config file called `relative-deps.json`
+This config contains paths to the local sources of any dependency, that will be built and installed over the publicly available versions, when needed.
 
 Example `package.json`:
 
 ```json
 {
-  "name": "my-project",
-  "dependencies": {
-    "my-cool-library": "0.1.0"
-  },
-  "relativeDependencies": {
-    "my-cool-library": "../../packages/my-cool-library"
-  },
-  "scripts": {
-    "prepare": "relative-deps"
-  },
-  "devDependencies": {
-    "relative-deps": "^1.0.0"
-  }
+  "my-cool-library": "../../packages/my-cool-library"
 }
 ```
 
@@ -72,7 +60,7 @@ Options:
 
 Alias `-S`. Default: `prepare`. Script name which is using for running `relative-deps`.
 
-Running this script will install `relative-deps`, add script and initialize empty `relativeDependencies` section.
+Running this script will install `relative-deps`, add `prepare` script and create an empty `relative-deps.json` file.
 
 ```json
 {
@@ -150,7 +138,7 @@ Roughly, it works like this (obviously this can get out of date quickly):
 
 ```
 - pre: yarn.lock exists or die
-- read relativeDeps from nearest package.json
+- read relativeDeps from nearest relative-deps.json
 - doesn't exist? warn & exit
 - for each relativeDep:
 - check if target path exists
