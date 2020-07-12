@@ -12,7 +12,7 @@ _Installs dependencies from a local checkout, and keeps them in sync, without th
 Relative deps introduces an additional dependency section in a config file called `relative-deps.json`
 This config contains paths to the local sources of any dependency, that will be built and installed over the publicly available versions, when needed.
 
-Example `package.json`:
+Example `relative-deps.json`:
 
 ```json
 {
