@@ -9,10 +9,10 @@ _Installs dependencies from a local checkout, and keeps them in sync, without th
 
 # Summary
 
-Relative deps introduces an additional dependency section in a config file called `relative-deps.json`
+Relative deps introduces an additional dependency config file called `.relativeDependenciesrc`
 This config contains paths to the local sources of any dependency, that will be built and installed over the publicly available versions, when needed.
 
-Example `relative-deps.json`:
+Example `relativeDependenciesrc`:
 
 ```json
 {
@@ -60,7 +60,7 @@ Options:
 
 Alias `-S`. Default: `prepare`. Script name which is using for running `relative-deps`.
 
-Running this script will install `relative-deps`, add `prepare` script and create an empty `relative-deps.json` file.
+Running this script will install `relative-deps`, add `prepare` script and create an empty `.relativeDependenciesrc` file.
 
 ```json
 {
@@ -68,7 +68,6 @@ Running this script will install `relative-deps`, add `prepare` script and creat
   "devDependencies": {
     "relative-deps": "^1.0.0"
   },
-  "relativeDependencies": {},
   "scripts": {
     "prepare": "relative-deps"
   }
@@ -90,6 +89,16 @@ Optionally, you can add this step also for more scripts, for example before star
 ```
 
 In general, this doesn't add to much overhead, since usually relative-deps is able to determine rather quickly (~0.5 sec) that there are no changes.
+
+### Configuration alternatives
+
+You can configure `relative-deps` in few ways, depends on your prefference:
+
+- a `relativeDependencies` property in package.json
+- a `.relativeDependenciesrc` file in JSON or YAML format
+- a `.relativeDependenciesrc.json` file
+- a `.relativeDependenciesrc.yaml`, `.relativeDependenciesrc.yml`, or `.relativeDependenciesrc.js` file
+- a ``relativeDependencies.config.js`` file exporting a JS object
 
 ## Adding a relative dependency
 

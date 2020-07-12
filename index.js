@@ -7,16 +7,15 @@ const globby = require("globby")
 const checksum = require("checksum")
 const merge = require("lodash/merge")
 const { spawn } = require("yarn-or-npm")
+const { cosmiconfigSync } = require('cosmiconfig')
+const configExplorer = cosmiconfigSync('relativeDependencies', { ignoreEmptySearchPlaces: false });
 
 async function installRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
-  const config = getConfig()
-
-  // support old `relativeDependencies` config in package.json file as a fallback
-  const relativeDependencies = config || projectPkgJson.package.relativeDependencies
+  const { config: relativeDependencies } = getConfig()
 
   if (!relativeDependencies) {
-    console.warn("[relative-deps][WARN] No 'relativeDependencies' specified in package.json")
+    console.warn("[relative-deps][WARN] No 'relativeDependencies' configuration found")
     process.exit(0)
   }
 
@@ -187,7 +186,7 @@ function addScriptToPackage(script) {
 }
 
 function installRelativeDepsPackage() {
-  let config = getConfig();
+  let { config } = getConfig();
 
   if (config) {
     console.log('[relative-deps] Installing relative-deps package')
@@ -196,7 +195,7 @@ function installRelativeDepsPackage() {
 }
 
 function setupEmptyRelativeDeps () {
-  let config = getConfig()
+  let { config } = getConfig()
 
   if (!config) {
     console.log(`[relative-deps] Setting up relativeDependencies config file`)
@@ -211,7 +210,6 @@ function initRelativeDeps({ script }) {
 }
 
 async function addRelativeDeps({ paths, dev, script }) {
-  initRelativeDeps({ script })
 
   if (!paths || paths.length === 0) {
     console.log(`[relative-deps][WARN] no paths provided running ${script}`)
@@ -237,7 +235,24 @@ async function addRelativeDeps({ paths, dev, script }) {
   })
 
   let pkg = getPackageJson()
-  let config = getConfig()
+  let { config, filepath } = getConfig()
+
+  if (!filepath) {
+    console.error(
+      `[relative-deps][ERROR] You havn't initilized relative-deps yet. run "npx relative-deps init" and try again.`
+    )
+    process.exit(1);
+  }
+
+  // the other file formats will require complex parsing and it's not in the scope of work.
+  const allowedConfigFiles = ['package.json', 'relativeDependenciesrc', 'relativeDependenciesrc.json'];
+
+  if (!allowedConfigFiles.some(allowedConfig => filepath.endsWith(allowedConfig))) {
+    console.error(
+      `[relative-deps][ERROR] We don't support adding new relative dependencies in your chosen config file. you can add them manually.`
+    )
+    process.exit(1);
+  }
 
   const depsKey = dev ? "devDependencies" : "dependencies"
   if (!pkg[depsKey]) pkg[depsKey] = {}
@@ -270,10 +285,28 @@ function setPackageData(pkgData) {
 }
 
 function setConfig(config) {
+  let { filepath } = getConfig();
+
+  if (!filepath) {
+    filepath = path.join(process.cwd(), ".relativeDependenciesrc")  
+  }
+
+  if (filepath.includes('package.json')) {
+    const packageJson = getPackageJson();
+    packageJson.relativeDependencies = config;
+    
+    fs.writeFileSync(
+      filepath,
+      JSON.stringify(packageJson, null, 2)
+    )
+    return; 
+  }
+
   fs.writeFileSync(
-    path.join(process.cwd(), "relative-deps.json"),
+    filepath,
     JSON.stringify(config, null, 2)
   )
+  
 }
 
 function getPackageJson() {
@@ -281,9 +314,7 @@ function getPackageJson() {
 }
 
 function getConfig() {
-  const configFilePath = path.join(process.cwd(), 'relative-deps.json');
-  const config = fs.existsSync(configFilePath) ? fs.readFileSync(configFilePath, "utf-8") : null
-  return JSON.parse(config) || null
+  return configExplorer.search() || { config: null, filepath: null };
 }
 
 module.exports.installRelativeDeps = installRelativeDeps
