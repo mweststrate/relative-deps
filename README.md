@@ -92,7 +92,7 @@ In general, this doesn't add to much overhead, since usually relative-deps is ab
 
 ### Configuration alternatives
 
-You can configure `relative-deps` in few ways, depends on your prefference:
+We use [`cosmiconfig`](https://github.com/davidtheclark/cosmiconfig) to load the config for this library so you could configure `relative-deps` in few ways, depends on your prefference:
 
 - a `relativeDependencies` property in package.json
 - a `.relativeDependenciesrc` file in JSON or YAML format
@@ -147,7 +147,7 @@ Roughly, it works like this (obviously this can get out of date quickly):
 
 ```
 - pre: yarn.lock exists or die
-- read relativeDeps from nearest relative-deps.json
+- read relativeDeps from nearest config file (or from `package.json` relativeDependencies section)
 - doesn't exist? warn & exit
 - for each relativeDep:
 - check if target path exists
