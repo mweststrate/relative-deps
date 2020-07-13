@@ -9,26 +9,14 @@ _Installs dependencies from a local checkout, and keeps them in sync, without th
 
 # Summary
 
-Relative deps introduces an additional dependency section in `package.json`, called `relativeDependencies`.
-This section contains paths to the local sources of any dependency, that will be built and installed over the publicly available versions, when needed.
+Relative deps introduces an additional dependency config file called `.relativeDependenciesrc`
+This config contains paths to the local sources of any dependency, that will be built and installed over the publicly available versions, when needed.
 
-Example `package.json`:
+Example `relativeDependenciesrc`:
 
 ```json
 {
-  "name": "my-project",
-  "dependencies": {
-    "my-cool-library": "0.1.0"
-  },
-  "relativeDependencies": {
-    "my-cool-library": "../../packages/my-cool-library"
-  },
-  "scripts": {
-    "prepare": "relative-deps"
-  },
-  "devDependencies": {
-    "relative-deps": "^1.0.0"
-  }
+  "my-cool-library": "../../packages/my-cool-library"
 }
 ```
 
@@ -72,7 +60,7 @@ Options:
 
 Alias `-S`. Default: `prepare`. Script name which is using for running `relative-deps`.
 
-Running this script will install `relative-deps`, add script and initialize empty `relativeDependencies` section.
+Running this script will install `relative-deps`, add `prepare` script and create an empty `.relativeDependenciesrc` file.
 
 ```json
 {
@@ -80,7 +68,6 @@ Running this script will install `relative-deps`, add script and initialize empt
   "devDependencies": {
     "relative-deps": "^1.0.0"
   },
-  "relativeDependencies": {},
   "scripts": {
     "prepare": "relative-deps"
   }
@@ -102,6 +89,16 @@ Optionally, you can add this step also for more scripts, for example before star
 ```
 
 In general, this doesn't add to much overhead, since usually relative-deps is able to determine rather quickly (~0.5 sec) that there are no changes.
+
+### Configuration alternatives
+
+We use [`cosmiconfig`](https://github.com/davidtheclark/cosmiconfig) to load the config for this library so you could configure `relative-deps` in few ways, depends on your prefference:
+
+- a `relativeDependencies` property in package.json
+- a `.relativeDependenciesrc` file in JSON or YAML format
+- a `.relativeDependenciesrc.json` file
+- a `.relativeDependenciesrc.yaml`, `.relativeDependenciesrc.yml`, or `.relativeDependenciesrc.js` file
+- a ``relativeDependencies.config.js`` file exporting a JS object
 
 ## Adding a relative dependency
 
@@ -150,7 +147,7 @@ Roughly, it works like this (obviously this can get out of date quickly):
 
 ```
 - pre: yarn.lock exists or die
-- read relativeDeps from nearest package.json
+- read relativeDeps from nearest config file (or from `package.json` relativeDependencies section)
 - doesn't exist? warn & exit
 - for each relativeDep:
 - check if target path exists

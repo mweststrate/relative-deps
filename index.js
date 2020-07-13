@@ -7,14 +7,15 @@ const globby = require("globby")
 const checksum = require("checksum")
 const merge = require("lodash/merge")
 const { spawn } = require("yarn-or-npm")
+const { cosmiconfigSync } = require('cosmiconfig')
+const configExplorer = cosmiconfigSync('relativeDependencies', { ignoreEmptySearchPlaces: false });
 
 async function installRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
-
-  const relativeDependencies = projectPkgJson.package.relativeDependencies
+  const { config: relativeDependencies } = getConfig()
 
   if (!relativeDependencies) {
-    console.warn("[relative-deps][WARN] No 'relativeDependencies' specified in package.json")
+    console.warn("[relative-deps][WARN] No 'relativeDependencies' configuration found")
     process.exit(0)
   }
 
@@ -185,24 +186,20 @@ function addScriptToPackage(script) {
 }
 
 function installRelativeDepsPackage() {
-  let pkg = getPackageJson()
+  let { config } = getConfig();
 
-  if (!(
-    (pkg.devDependencies && pkg.devDependencies["relative-deps"]) ||
-    (pkg.dependencies && pkg.dependencies["relative-deps"])
-  )) {
+  if (config) {
     console.log('[relative-deps] Installing relative-deps package')
     spawn.sync(["add -D relative-deps"])
   }
 }
 
 function setupEmptyRelativeDeps () {
-  let pkg = getPackageJson()
+  let { config } = getConfig()
 
-  if (!pkg.relativeDependencies) {
-    console.log(`[relative-deps] Setting up relativeDependencies section in package.json`)
-    pkg.relativeDependencies = {}
-    setPackageData(pkg)
+  if (!config) {
+    console.log(`[relative-deps] Setting up relativeDependencies config file`)
+    setConfig({})
   }
 }
 
@@ -213,7 +210,6 @@ function initRelativeDeps({ script }) {
 }
 
 async function addRelativeDeps({ paths, dev, script }) {
-  initRelativeDeps({ script })
 
   if (!paths || paths.length === 0) {
     console.log(`[relative-deps][WARN] no paths provided running ${script}`)
@@ -239,6 +235,24 @@ async function addRelativeDeps({ paths, dev, script }) {
   })
 
   let pkg = getPackageJson()
+  let { config, filepath } = getConfig()
+
+  if (!filepath) {
+    console.error(
+      `[relative-deps][ERROR] You havn't initilized relative-deps yet. run "npx relative-deps init" and try again.`
+    )
+    process.exit(1);
+  }
+
+  // the other file formats will require complex parsing and it's not in the scope of work.
+  const allowedConfigFiles = ['package.json', 'relativeDependenciesrc', 'relativeDependenciesrc.json'];
+
+  if (!allowedConfigFiles.some(allowedConfig => filepath.endsWith(allowedConfig))) {
+    console.error(
+      `[relative-deps][ERROR] We don't support adding new relative dependencies in your chosen config file. you can add them manually.`
+    )
+    process.exit(1);
+  }
 
   const depsKey = dev ? "devDependencies" : "dependencies"
   if (!pkg[depsKey]) pkg[depsKey] = {}
@@ -253,13 +267,12 @@ async function addRelativeDeps({ paths, dev, script }) {
     }
   })
 
-  if (!pkg.relativeDependencies) pkg.relativeDependencies = {}
-
   libraries.forEach(dependency => {
-    pkg.relativeDependencies[dependency.name] = dependency.relPath
+    config[dependency.name] = dependency.relPath
   })
 
   setPackageData(pkg)
+  setConfig(config)
   await installRelativeDeps()
 }
 
@@ -271,8 +284,37 @@ function setPackageData(pkgData) {
   )
 }
 
+function setConfig(config) {
+  let { filepath } = getConfig();
+
+  if (!filepath) {
+    filepath = path.join(process.cwd(), ".relativeDependenciesrc")  
+  }
+
+  if (filepath.includes('package.json')) {
+    const packageJson = getPackageJson();
+    packageJson.relativeDependencies = config;
+    
+    fs.writeFileSync(
+      filepath,
+      JSON.stringify(packageJson, null, 2)
+    )
+    return; 
+  }
+
+  fs.writeFileSync(
+    filepath,
+    JSON.stringify(config, null, 2)
+  )
+  
+}
+
 function getPackageJson() {
   return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), "utf-8"))
+}
+
+function getConfig() {
+  return configExplorer.search() || { config: null, filepath: null };
 }
 
 module.exports.installRelativeDeps = installRelativeDeps
