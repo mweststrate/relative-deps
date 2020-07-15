@@ -66,9 +66,10 @@ Since building a linked package every time `yarn install` is run is expensive, t
 ```bash
 npx relative-deps init
 ```
+
 Options:
 
-* `--script`
+- `--script`
 
 Alias `-S`. Default: `prepare`. Script name which is using for running `relative-deps`.
 
@@ -113,7 +114,7 @@ npx relative-deps add ../../packages/my-cool-library
 
 Options:
 
-* `--dev`
+- `--dev`
 
 Alias `-D`. Installs relative dependency in `devDependencies` section.
 
@@ -142,7 +143,13 @@ Example of a [repository migration to relative-deps](https://github.com/mobxjs/m
 The relative deps will automatically be checked for changes, based on the hooks you've set up during [installation](#installation).
 
 However, you can always trigger a manual check-and-build-if-needed by running `yarn relative-deps` (or just `yarn`). If you are working on a project that supports
-hot reloading, this will makes sure the changes in the relative dependency will automatically show up in your project! (A watch mode, to even automate this, might be introduced in the future).
+hot reloading, this will makes sure the changes in the relative dependency will automatically show up in your project!
+
+## Watch mode
+
+You can run `relative-deps watch` and it'll run `relative-deps` command when one of the relative dependecies changed, debounced with 500ms.
+This can go along with config of your project to watch over the relevant packages and it will automate the process completely,
+allowing you to change a library code and to enjoy the befefit of hot-reload.
 
 # How
 
