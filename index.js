@@ -152,8 +152,9 @@ function packAndInstallLibrary(name, dir, targetDir) {
     }
     fs.mkdirSync(libDestDir, { recursive: true })
 
-    const tmpName = name.replace(/[\s\/]/g, "-").replace(/@/g, "at-")
-    const regex = new RegExp(`^${tmpName}(.*).tgz$`)
+    const tmpName = name.replace(/[\s\/]/g, "-").replace(/@/g, "")
+    // npm replaces @... with at- where yarn just removes it, so we test for both files here
+    const regex = new RegExp(`^(at-)?${tmpName}(.*).tgz$`)
 
     const packagedName = fs.readdirSync(dir).find(file => regex.test(file))
     fullPackageName = path.join(dir, packagedName)
