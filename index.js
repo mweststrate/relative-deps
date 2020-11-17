@@ -209,7 +209,7 @@ function installRelativeDepsPackage() {
     (pkg.dependencies && pkg.dependencies["relative-deps"])
   )) {
     console.log('[relative-deps] Installing relative-deps package')
-    spawn.sync(["add -D relative-deps"])
+    spawn.sync(["add", "-D", "relative-deps"])
   }
 }
 
@@ -263,7 +263,7 @@ async function addRelativeDeps({ paths, dev, script }) {
   libraries.forEach(library => {
     if (!pkg[depsKey][library.name]) {
       try {
-        spawn.sync([`add ${dev ? "-D" : ""} ${library.name}`], { stdio: "ignore" })
+        spawn.sync(["add", ...[dev ? ["-D"] : []], library.name], { stdio: "ignore" })
       } catch (_e) {
         console.log(`[relative-deps][WARN] Unable to fetch ${library.name} from registry. Installing as a relative dependency only.`)
       }
