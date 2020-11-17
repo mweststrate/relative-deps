@@ -135,7 +135,7 @@ function buildLibrary(name, dir) {
   }
   if (libraryPkgJson.scripts && libraryPkgJson.scripts.build) {
     console.log(`[relative-deps] Building ${name} in ${dir}`)
-    spawn.sync(["build"], { cwd: dir, stdio: [0, 1, 2] })
+    spawn.sync(["run", "build"], { cwd: dir, stdio: [0, 1, 2] })
   }
 }
 
