@@ -1,6 +1,6 @@
 {
   "name": "relative-deps",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "Installs local dependencies for optimal developer experience",
   "main": "index.js",
   "scripts": {
