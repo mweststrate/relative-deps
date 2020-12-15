@@ -170,8 +170,9 @@ function packAndInstallLibrary(name, dir, targetDir) {
       cwd,
       file,
       gzip: true, 
+      stripComponents: 1,
       sync: true
-    }, ["--strip-components=1", "package"])
+    })
   } finally {
     if (fullPackageName) {
       fs.unlinkSync(fullPackageName)
