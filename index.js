@@ -6,8 +6,9 @@ const rimraf = require("rimraf")
 const globby = require("globby")
 const checksum = require("checksum")
 const merge = require("lodash/merge")
-const debounce = require('lodash/debounce')
+const debounce = require("lodash/debounce")
 const { spawn } = require("yarn-or-npm")
+const tar = require("tar")
 
 async function installRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
@@ -161,11 +162,17 @@ function packAndInstallLibrary(name, dir, targetDir) {
 
     console.log(`[relative-deps] Extracting "${fullPackageName}" to ${libDestDir}`)
 
-    child_process.execFileSync(
-      "tar",
-      ["zxf", path.relative(process.cwd(), fullPackageName), "--strip-components=1", "-C", path.relative(process.cwd(), libDestDir), "package"],
-      { stdio: [0, 1, 2] }
+    const [cwd, file] = [libDestDir, fullPackageName].map(absolutePath => 
+      path.relative(process.cwd(), absolutePath)
     )
+
+    tar.extract({
+      cwd,
+      file,
+      gzip: true, 
+      stripComponents: 1,
+      sync: true
+    })
   } finally {
     if (fullPackageName) {
       fs.unlinkSync(fullPackageName)
