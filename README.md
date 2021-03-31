@@ -138,11 +138,11 @@ Alias `-D`. Installs relative dependency in `devDependencies` section.
 
 Example of a [repository migration to relative-deps](https://github.com/mobxjs/mst-gql/pull/40/commits/4d2c0858f8c44a562c0244466b56f79b0ed7591b)
 
-## Run `yarn relative-deps` when devving!
+## Run `npx relative-deps` when devving!
 
 The relative deps will automatically be checked for changes, based on the hooks you've set up during [installation](#installation).
 
-However, you can always trigger a manual check-and-build-if-needed by running `yarn relative-deps` (or just `yarn`). If you are working on a project that supports
+However, you can always trigger a manual check-and-build-if-needed by running `npx relative-deps` (or just `yarn`). If you are working on a project that supports
 hot reloading, this will makes sure the changes in the relative dependency will automatically show up in your project!
 
 ## Watch mode
