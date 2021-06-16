@@ -9,6 +9,7 @@ const merge = require("lodash/merge")
 const debounce = require("lodash/debounce")
 const { spawn } = require("yarn-or-npm")
 const tar = require("tar")
+const yargs = require('yargs');
 
 async function installRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
@@ -108,13 +109,17 @@ async function libraryHasChanged(name, libDir, targetDir, hashStore) {
 
 async function findFiles(libDir, targetDir) {
   const ignore = ["**/*", "!node_modules", "!.git"]
+  const { argv: { ignoreGit } } = yargs
+    .alias('i', 'ignoreGit')
+    .describe('ignoreGit', 'ignoring git dependencies');
+
   // TODO: use resolved paths here
   if (targetDir.indexOf(libDir) === 0) {
     // The target dir is in the lib directory, make sure that path is excluded
     ignore.push("!" + targetDir.substr(libDir.length + 1).split(path.sep)[0])
   }
   const files = await globby(ignore, {
-    gitignore: true,
+    gitignore: !ignoreGit,
     cwd: libDir,
     nodir: true
   })
