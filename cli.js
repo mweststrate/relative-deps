@@ -1,28 +1,33 @@
 #!/usr/bin/env node
-const yargs = require("yargs");
-const relativeDeps = require("./index");
+import yargs from "yargs";
+import {
+  installRelativeDeps,
+  watchRelativeDeps,
+  initRelativeDeps,
+  addRelativeDeps
+} from "./index.js";
 
 yargs
   .usage("Usage: $0 <command> [options]")
   .command({
     command: "*",
     describe: "Install relative deps",
-    handler: relativeDeps.installRelativeDeps
+    handler: installRelativeDeps
   })
   .command({
     command: "watch",
     describe: "Watch relative deps and install on change",
-    handler: relativeDeps.watchRelativeDeps
+    handler: watchRelativeDeps
   })
   .command({
     command: "init",
     describe: "Initialize relative-deps",
-    handler: relativeDeps.initRelativeDeps
+    handler: initRelativeDeps
   })
   .command({
     command: "add [paths...]",
     describe: "Add path as relative dependencies",
-    handler: relativeDeps.addRelativeDeps
+    handler: addRelativeDeps
   })
   .option("D", {
     alias: ["dev", "save-dev"],

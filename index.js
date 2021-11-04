@@ -1,16 +1,14 @@
-const path = require("path")
-const child_process = require("child_process")
-const fs = require("fs")
-const readPkgUp = require("read-pkg-up")
-const rimraf = require("rimraf")
-const globby = require("globby")
-const checksum = require("checksum")
-const merge = require("lodash/merge")
-const debounce = require("lodash/debounce")
-const { spawn } = require("yarn-or-npm")
-const tar = require("tar")
+import path from "path";
+import fs from "fs";
+import readPkgUp from "read-pkg-up";
+import rimraf from "rimraf";
+import {globby} from "globby";
+import checksum from "checksum";
+import {merge, debounce} from "lodash-es";
+import yarnOrNpm from "yarn-or-npm";
+import tar from "tar";
 
-async function installRelativeDeps() {
+export async function installRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
 
   const relativeDependencies = projectPkgJson.package.relativeDependencies
@@ -63,7 +61,7 @@ async function installRelativeDeps() {
   }
 }
 
-async function watchRelativeDeps() {
+export async function watchRelativeDeps() {
   const projectPkgJson = readPkgUp.sync()
 
   const relativeDependencies = projectPkgJson.package.relativeDependencies
@@ -74,7 +72,7 @@ async function watchRelativeDeps() {
   }
 
   Object.values(relativeDependencies).forEach(path => {
-    fs.watch(path, { recursive: true }, debounce(installRelativeDeps, 500))
+    fs.watch(path, {recursive: true}, debounce(installRelativeDeps, 500))
   });
 }
 
@@ -84,7 +82,7 @@ async function libraryHasChanged(name, libDir, targetDir, hashStore) {
   // compute the hahses
   const libFiles = await findFiles(libDir, targetDir)
   const hashes = []
-  for (file of libFiles) hashes.push(await getFileHash(path.join(libDir, file)))
+  for (const file of libFiles) hashes.push(await getFileHash(path.join(libDir, file)))
   const contents = libFiles.map((file, index) => hashes[index] + " " + file).join("\n")
   hashStore.file = hashFile
   hashStore.hash = contents
@@ -125,7 +123,7 @@ function buildLibrary(name, dir) {
   // Run install if never done before
   if (!fs.existsSync(path.join(dir, "node_modules"))) {
     console.log(`[relative-deps] Running 'install' in ${dir}`)
-    spawn.sync(["install"], { cwd: dir, stdio: [0, 1, 2] })
+    yarnOrNpm.spawn.sync(["install"], {cwd: dir, stdio: [0, 1, 2]})
   }
 
   // Run build script if present
@@ -136,7 +134,7 @@ function buildLibrary(name, dir) {
   }
   if (libraryPkgJson.scripts && libraryPkgJson.scripts.build) {
     console.log(`[relative-deps] Building ${name} in ${dir}`)
-    spawn.sync(["run", "build"], { cwd: dir, stdio: [0, 1, 2] })
+    yarnOrNpm.spawn.sync(["run", "build"], {cwd: dir, stdio: [0, 1, 2]})
   }
 }
 
@@ -145,13 +143,13 @@ function packAndInstallLibrary(name, dir, targetDir) {
   let fullPackageName
   try {
     console.log("[relative-deps] Copying to local node_modules")
-    spawn.sync(["pack"], { cwd: dir, stdio: [0, 1, 2] })
+    yarnOrNpm.spawn.sync(["pack"], {cwd: dir, stdio: [0, 1, 2]})
 
     if (fs.existsSync(libDestDir)) {
       // TODO: should we really remove it? Just overwritting could be fine
       rimraf.sync(libDestDir)
     }
-    fs.mkdirSync(libDestDir, { recursive: true })
+    fs.mkdirSync(libDestDir, {recursive: true})
 
     const tmpName = name.replace(/[\s\/]/g, "-").replace(/@/g, "")
     // npm replaces @... with at- where yarn just removes it, so we test for both files here
@@ -162,14 +160,14 @@ function packAndInstallLibrary(name, dir, targetDir) {
 
     console.log(`[relative-deps] Extracting "${fullPackageName}" to ${libDestDir}`)
 
-    const [cwd, file] = [libDestDir, fullPackageName].map(absolutePath => 
+    const [cwd, file] = [libDestDir, fullPackageName].map(absolutePath =>
       path.relative(process.cwd(), absolutePath)
     )
 
     tar.extract({
       cwd,
       file,
-      gzip: true, 
+      gzip: true,
       stripComponents: 1,
       sync: true
     })
@@ -216,7 +214,7 @@ function installRelativeDepsPackage() {
     (pkg.dependencies && pkg.dependencies["relative-deps"])
   )) {
     console.log('[relative-deps] Installing relative-deps package')
-    spawn.sync(["add", "-D", "relative-deps"])
+    yarnOrNpm.spawn.sync(["add", "-D", "relative-deps"])
   }
 }
 
@@ -230,18 +228,18 @@ function setupEmptyRelativeDeps() {
   }
 }
 
-function initRelativeDeps({ script }) {
+export function initRelativeDeps({script}) {
   installRelativeDepsPackage()
   setupEmptyRelativeDeps()
   addScriptToPackage(script)
 }
 
-async function addRelativeDeps({ paths, dev, script }) {
-  initRelativeDeps({ script })
+export async function addRelativeDeps({paths, dev, script}) {
+  initRelativeDeps({script})
 
   if (!paths || paths.length === 0) {
     console.log(`[relative-deps][WARN] no paths provided running ${script}`)
-    spawn.sync([script])
+    yarnOrNpm.spawn.sync([script])
     return
   }
   const libraries = paths.map(relPath => {
@@ -270,7 +268,7 @@ async function addRelativeDeps({ paths, dev, script }) {
   libraries.forEach(library => {
     if (!pkg[depsKey][library.name]) {
       try {
-        spawn.sync(["add", ...[dev ? ["-D"] : []], library.name], { stdio: "ignore" })
+        yarnOrNpm.spawn.sync(["add", ...[dev ? ["-D"] : []], library.name], {stdio: "ignore"})
       } catch (_e) {
         console.log(`[relative-deps][WARN] Unable to fetch ${library.name} from registry. Installing as a relative dependency only.`)
       }
@@ -298,8 +296,3 @@ function setPackageData(pkgData) {
 function getPackageJson() {
   return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), "utf-8"))
 }
-
-module.exports.watchRelativeDeps = watchRelativeDeps
-module.exports.installRelativeDeps = installRelativeDeps
-module.exports.initRelativeDeps = initRelativeDeps
-module.exports.addRelativeDeps = addRelativeDeps
