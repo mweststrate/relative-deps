@@ -7,7 +7,7 @@ const globby = require("globby")
 const checksum = require("checksum")
 const merge = require("lodash/merge")
 const debounce = require("lodash/debounce")
-const { spawn } = require("yarn-or-npm")
+const { spawn, hasYarn } = require("yarn-or-npm")
 const tar = require("tar")
 
 async function installRelativeDeps() {
@@ -154,10 +154,22 @@ function packAndInstallLibrary(name, dir, targetDir) {
     fs.mkdirSync(libDestDir, { recursive: true })
 
     const tmpName = name.replace(/[\s\/]/g, "-").replace(/@/g, "")
+
+   
+
     // npm replaces @... with at- where yarn just removes it, so we test for both files here
     const regex = new RegExp(`^(at-)?${tmpName}(.*).tgz$`)
 
-    const packagedName = fs.readdirSync(dir).find(file => regex.test(file))
+    let packagedName = fs.readdirSync(dir).find(file => regex.test(file))
+
+    if(hasYarn) {
+      let yarnVersion = spawn.sync(['-v'], { cwd: dir, encoding: "utf8" });
+
+      if(yarnVersion.stdout.replace('\n','').split('.')[0] >= 3) {
+        packagedName = "package.tgz"
+      }
+    }
+
     fullPackageName = path.join(dir, packagedName)
 
     console.log(`[relative-deps] Extracting "${fullPackageName}" to ${libDestDir}`)
