@@ -9,10 +9,22 @@ yargs
     describe: "Install relative deps",
     handler: relativeDeps.installRelativeDeps
   })
+  .option("P", {
+    alias: ["specifiedPackage"],
+    description: "Specify package",
+    default: undefined,
+    type: "string"
+  })
   .command({
     command: "watch",
     describe: "Watch relative deps and install on change",
     handler: relativeDeps.watchRelativeDeps
+  })
+  .option("P", {
+    alias: ["specifiedPackage"],
+    description: "Specify package",
+    default: undefined,
+    type: "string"
   })
   .command({
     command: "init",
