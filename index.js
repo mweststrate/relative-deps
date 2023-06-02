@@ -7,10 +7,10 @@ const globby = require("globby")
 const checksum = require("checksum")
 const merge = require("lodash/merge")
 const debounce = require("lodash/debounce")
-const { spawn } = require("yarn-or-npm")
+const { spawn, hasYarn } = require("yarn-or-npm")
 const tar = require("tar")
 
-async function installRelativeDeps() {
+async function installRelativeDeps({specifiedPackage}) {
   const projectPkgJson = readPkgUp.sync()
 
   const relativeDependencies = projectPkgJson.package.relativeDependencies
@@ -20,10 +20,26 @@ async function installRelativeDeps() {
     process.exit(0)
   }
 
-  const targetDir = path.dirname(projectPkgJson.path)
 
   const depNames = Object.keys(relativeDependencies)
-  for (const name of depNames) {
+  if (!specifiedPackage) {
+    for (const name of depNames) {
+      installPackage(projectPkgJson, name)
+    }
+  } else {
+    const name = depNames.find((d) => d === specifiedPackage)
+    if (name) {
+      installPackage(projectPkgJson, name)
+    } else {
+      console.warn(`No dependency found with name '${specifiedPackage}'`);
+    }
+  }
+}
+
+async function installPackage(projectPkgJson, name) {
+  const targetDir = path.dirname(projectPkgJson.path)
+  const relativeDependencies = projectPkgJson.package.relativeDependencies
+
     const libDir = path.resolve(targetDir, relativeDependencies[name])
     console.log(`[relative-deps] Checking '${name}' in '${libDir}'`)
 
@@ -60,10 +76,9 @@ async function installRelativeDeps() {
       fs.writeFileSync(hashStore.file, hashStore.hash)
       console.log(`[relative-deps] Re-installing ${name}... DONE`)
     }
-  }
 }
 
-async function watchRelativeDeps() {
+async function watchRelativeDeps({specifiedPackage}) {
   const projectPkgJson = readPkgUp.sync()
 
   const relativeDependencies = projectPkgJson.package.relativeDependencies
@@ -73,9 +88,19 @@ async function watchRelativeDeps() {
     process.exit(0)
   }
 
-  Object.values(relativeDependencies).forEach(path => {
-    fs.watch(path, { recursive: true }, debounce(installRelativeDeps, 500))
-  });
+  if (specifiedPackage) {
+    Object.values(relativeDependencies).forEach(path => {
+      fs.watch(path, { recursive: true }, debounce(installRelativeDeps, 500))
+    });
+  } else {
+    const name = Object.keys(relativeDependencies).find((k) => k === specifiedPackage);
+    const path = relativeDependencies[name];
+    if (path) {
+      fs.watch(path, { recursive: true }, debounce(installRelativeDeps, 500));
+    } else {
+      console.warn(`No dependency found with name '${specifiedPackage}'`);
+    }
+  }
 }
 
 async function libraryHasChanged(name, libDir, targetDir, hashStore) {
@@ -154,10 +179,22 @@ function packAndInstallLibrary(name, dir, targetDir) {
     fs.mkdirSync(libDestDir, { recursive: true })
 
     const tmpName = name.replace(/[\s\/]/g, "-").replace(/@/g, "")
+
+   
+
     // npm replaces @... with at- where yarn just removes it, so we test for both files here
     const regex = new RegExp(`^(at-)?${tmpName}(.*).tgz$`)
 
-    const packagedName = fs.readdirSync(dir).find(file => regex.test(file))
+    let packagedName = fs.readdirSync(dir).find(file => regex.test(file))
+
+    if(hasYarn) {
+      let yarnVersion = spawn.sync(['-v'], { cwd: dir, encoding: "utf8" });
+
+      if(yarnVersion.stdout.replace('\n','').split('.')[0] >= 3) {
+        packagedName = "package.tgz"
+      }
+    }
+
     fullPackageName = path.join(dir, packagedName)
 
     console.log(`[relative-deps] Extracting "${fullPackageName}" to ${libDestDir}`)
