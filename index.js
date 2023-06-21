@@ -81,8 +81,16 @@ async function watchRelativeDeps() {
 async function libraryHasChanged(name, libDir, targetDir, hashStore) {
   const hashFile = path.join(targetDir, "node_modules", name, ".relative-deps-hash")
   const referenceContents = fs.existsSync(hashFile) ? fs.readFileSync(hashFile, "utf8") : ""
-  // compute the hahses
-  const libFiles = await findFiles(libDir, targetDir)
+  // glob pattern list, relative to libDir, made for adding "dist" and similar
+  relativeDepsIgnoreFile = path.join(libDir, ".relative-deps-ignore")
+  const additionalIgnoredList = fs.existsSync(relativeDepsIgnoreFile)
+    ? fs.readFileSync(relativeDepsIgnoreFile, "utf8")
+      .split("\n")
+      .filter(line => line.trim() && !line.trim().startsWith('#'))
+      .map(line => line.split('#')[0])
+    : undefined
+  // compute the hashes
+  const libFiles = await findFiles(libDir, targetDir, additionalIgnoredList)
   const hashes = []
   for (file of libFiles) hashes.push(await getFileHash(path.join(libDir, file)))
   const contents = libFiles.map((file, index) => hashes[index] + " " + file).join("\n")
@@ -106,8 +114,8 @@ async function libraryHasChanged(name, libDir, targetDir, hashStore) {
   return true
 }
 
-async function findFiles(libDir, targetDir) {
-  const ignore = ["**/*", "!node_modules", "!.git"]
+async function findFiles(libDir, targetDir, additionalIgnoredList = []) {
+  const ignore = ["**/*", "!node_modules", "!.git", ...additionalIgnoredList]
   // TODO: use resolved paths here
   if (targetDir.indexOf(libDir) === 0) {
     // The target dir is in the lib directory, make sure that path is excluded
