@@ -151,6 +151,13 @@ You can run `relative-deps watch` and it'll run `relative-deps` command when one
 This can go along with config of your project to watch over the relevant packages and it will automate the process completely,
 allowing you to change a library code and to enjoy the befefit of hot-reload.
 
+### 🔔 If you get multiple re-builds (due to your project being compiled, and then "new changes" found again): for the relative-dep, in it's folder, add a `.relative-deps-ignore` file with `!dist` or similar entries
+```
+!dist
+!.output
+!.built
+```
+
 # How
 
 Roughly, it works like this (obviously this can get out of date quickly):
