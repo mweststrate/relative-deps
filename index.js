@@ -82,7 +82,7 @@ async function libraryHasChanged(name, libDir, targetDir, hashStore) {
   const hashFile = path.join(targetDir, "node_modules", name, ".relative-deps-hash")
   const referenceContents = fs.existsSync(hashFile) ? fs.readFileSync(hashFile, "utf8") : ""
   // glob pattern list, relative to libDir, made for adding "dist" and similar
-  relativeDepsIgnoreFile = path.join(libDir, ".relative-deps-ignore")
+  const relativeDepsIgnoreFile = path.join(libDir, ".relative-deps-ignore")
   const additionalIgnoredList = fs.existsSync(relativeDepsIgnoreFile)
     ? fs.readFileSync(relativeDepsIgnoreFile, "utf8")
       .split("\n")
